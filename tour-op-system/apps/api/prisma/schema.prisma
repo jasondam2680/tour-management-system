@@ -138,6 +138,7 @@ model Organization {
   customers     Customer[]
   suppliers     Supplier[]
   tours         Tour[]
+  itineraries   Itinerary[]
   exchangeRates ExchangeRate[]
 
   @@index([code])
@@ -394,7 +395,8 @@ model Quotation {
   createdBy User           @relation("QuotationCreatedBy", fields: [createdById], references: [id])
   items     QuotationItem[]
   tour      Tour?
-  itinerary Itinerary?
+  itineraryVersionId String?  @unique
+  itineraryVersion ItineraryVersion? @relation(fields: [itineraryVersionId], references: [id])
 
   @@index([organizationId])
   @@index([status])
@@ -434,32 +436,58 @@ model QuotationItem {
 }
 
 model Itinerary {
-  id          String         @id @default(cuid())
-  quotationId String         @unique
-  title       String
-  totalDays   Int
-  overview    String?
-  notes       String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  quotation   Quotation      @relation(fields: [quotationId], references: [id])
-  days        ItineraryDay[]
+  id               String   @id @default(cuid())
+  organizationId   String
+  code             String   @unique
+  title            String
+  currentVersionId String?  @unique
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
+  organization     Organization       @relation(fields: [organizationId], references: [id])
+  currentVersion   ItineraryVersion?  @relation("ItineraryCurrentVersion", fields: [currentVersionId], references: [id])
+  versions         ItineraryVersion[] @relation("ItineraryVersions")
+  tours            Tour[]
+
+  @@index([organizationId])
+  @@index([code])
   @@map("itineraries")
+}
+
+model ItineraryVersion {
+  id           String   @id @default(cuid())
+  itineraryId  String
+  versionNumber Int     @default(1)
+  title        String
+  overview     String?
+  notes        String?
+  isActive     Boolean  @default(false)
+  quotationId  String?  @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  itinerary    Itinerary          @relation("ItineraryVersions", fields: [itineraryId], references: [id], onDelete: Cascade)
+  days         ItineraryDay[]
+  currentFor   Itinerary?         @relation("ItineraryCurrentVersion")
+  quotation    Quotation?
+
+  @@unique([itineraryId, versionNumber])
+  @@index([itineraryId])
+  @@map("itinerary_versions")
 }
 
 model ItineraryDay {
   id            String              @id @default(cuid())
-  itineraryId   String
+  versionId     String
   dayNumber     Int
   title         String?
   description   String?
   meals         String[]            @default([])
   accommodation String?
-  itinerary     Itinerary           @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  version       ItineraryVersion    @relation(fields: [versionId], references: [id], onDelete: Cascade)
   activities    ItineraryActivity[]
 
-  @@index([itineraryId])
+  @@index([versionId])
   @@map("itinerary_days")
 }
 
@@ -484,6 +512,7 @@ model Tour {
   organizationId String
   customerId     String?
   quotationId    String?    @unique
+  itineraryId    String?
   code           String     @unique
   title          String
   status         TourStatus @default(PLANNING)
@@ -515,6 +544,7 @@ model Tour {
   organization Organization      @relation(fields: [organizationId], references: [id])
   customer     Customer?         @relation(fields: [customerId], references: [id])
   quotation    Quotation?        @relation(fields: [quotationId], references: [id])
+  itinerary    Itinerary?        @relation(fields: [itineraryId], references: [id])
   bookings     Booking[]
   assignments  TourAssignment[]
   incidents    TourIncident[]

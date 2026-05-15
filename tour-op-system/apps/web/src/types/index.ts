@@ -64,13 +64,21 @@ export interface Supplier {
   contactPerson?: string;
   email?: string;
   phone?: string;
+  address?: string;
   city?: string;
   country?: string;
+  website?: string;
+  taxCode?: string;
+  paymentTerms?: string;
+  bankAccount?: string;
+  bankName?: string;
   rating: number;
+  notes?: string;
   isPreferred: boolean;
   isActive: boolean;
   currency: Currency;
   createdAt: string;
+  _count?: { resources: number; bookings: number };
 }
 
 export type LeadStatus =
@@ -248,4 +256,50 @@ export interface TourStats {
   byStatus: Partial<Record<TourStatus, number>>;
   totalRevenue: number;
   totalProfit: number;
+}
+
+export interface ItineraryActivity {
+  id: string;
+  sortOrder: number;
+  time?: string;
+  title: string;
+  description?: string;
+  location?: string;
+  duration?: number;
+  notes?: string;
+}
+
+export interface ItineraryDay {
+  id: string;
+  dayNumber: number;
+  title?: string;
+  description?: string;
+  meals: string[];
+  accommodation?: string;
+  activities: ItineraryActivity[];
+}
+
+export interface ItineraryVersion {
+  id: string;
+  versionNumber: number;
+  title: string;
+  overview?: string;
+  notes?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  days?: ItineraryDay[];
+  _count?: { days: number };
+}
+
+export interface Itinerary {
+  id: string;
+  code: string;
+  title: string;
+  currentVersionId?: string;
+  createdAt: string;
+  updatedAt: string;
+  currentVersion?: ItineraryVersion;
+  versions?: ItineraryVersion[];
+  _count?: { versions: number };
 }

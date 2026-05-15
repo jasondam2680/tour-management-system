@@ -11,6 +11,7 @@ import { FinanceModule }  from './modules/finance/finance.module';
 import { SuppliersModule } from './modules/suppliers/suppliers.module';
 import { LeadsModule } from './modules/leads/leads.module';
 import { QuotationsModule } from './modules/quotations/quotations.module';
+import { ItinerariesModule } from './modules/itineraries/itineraries.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
@@ -25,6 +26,7 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     SuppliersModule,
     LeadsModule,
     QuotationsModule,
+    ItinerariesModule,
     ToursModule,
     BookingsModule,
     FinanceModule,

@@ -20,6 +20,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Suppliers',   href: '/dashboard/suppliers',  icon: '🏭', roles: ['SUPER_ADMIN','ADMIN','OP'] },
   { label: 'Leads',       href: '/dashboard/leads',      icon: '🎯', roles: ['SUPER_ADMIN','ADMIN','SALES'] },
   { label: 'Quotations',  href: '/dashboard/quotations', icon: '📋', roles: ['SUPER_ADMIN','ADMIN','SALES'] },
+  { label: 'Itineraries', href: '/dashboard/itineraries', icon: '🗺️', roles: ['SUPER_ADMIN','ADMIN','SALES','OP'] },
   { label: 'Tours',       href: '/dashboard/tours',      icon: '✈️' },
   { label: 'Bookings',    href: '/dashboard/bookings',   icon: '📅', roles: ['SUPER_ADMIN','ADMIN','OP'] },
   { label: 'Finance',     href: '/dashboard/finance',    icon: '💰', roles: ['SUPER_ADMIN','ADMIN','FINANCE'] },

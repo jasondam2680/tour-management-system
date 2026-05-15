@@ -214,7 +214,7 @@ export class QuotationsService {
         customer:  true,
         lead:      { select: { id: true, title: true, status: true } },
         createdBy: { select: { id: true, firstName: true, lastName: true } },
-        itinerary: { include: { days: { include: { activities: true }, orderBy: { dayNumber: 'asc' } } } },
+        itineraryVersion: { include: { days: { include: { activities: true }, orderBy: { dayNumber: 'asc' } } } },
       },
     });
     if (!q) throw new NotFoundException(`Quotation ${id} not found`);
@@ -223,7 +223,11 @@ export class QuotationsService {
 
   // ── UPDATE ───────────────────────────────────────────────────
   async update(id: string, dto: UpdateQuotationDto, organizationId: string) {
-    const existing = await this.findOne(id, organizationId);
+    const existing = await this.prisma.quotation.findFirst({
+      where: { id, organizationId },
+      include: { items: true },
+    });
+    if (!existing) throw new NotFoundException(`Quotation ${id} not found`);
 
     if (!['DRAFT', 'NEGOTIATING'].includes(existing.status as string)) {
       throw new BadRequestException(
@@ -231,7 +235,7 @@ export class QuotationsService {
       );
     }
 
-    const items = dto.items ?? (existing.items as any[]);
+    const items = dto.items ?? (existing.items as unknown as QuotationItemDto[]);
     const totals = this.calcTotals(
       items,
       dto.discountAmount ?? Number(existing.discountAmount),
@@ -343,7 +347,11 @@ export class QuotationsService {
 
   // ── DUPLICATE ────────────────────────────────────────────────
   async duplicate(id: string, organizationId: string, createdById: string) {
-    const original = await this.findOne(id, organizationId);
+    const original = await this.prisma.quotation.findFirst({
+      where: { id, organizationId },
+      include: { items: true },
+    });
+    if (!original) throw new NotFoundException(`Quotation ${id} not found`);
     const code     = await this.generateCode(organizationId);
 
     return this.prisma.quotation.create({

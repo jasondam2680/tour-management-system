@@ -103,12 +103,12 @@ export default function QuotationDetailPage() {
   const items = (quotation.items ?? []);
   const canEdit = ['DRAFT', 'NEGOTIATING'].includes(quotation.status);
 
-  const itemsByDay = items.reduce<Record<string, any[]>>((acc: any, item: any) => {
+  const itemsByDay: Record<string, any[]> = items.reduce((acc: any, item: any) => {
     const key = item.day ? `Ngày ${item.day}` : 'Chung';
     if (!acc[key]) acc[key] = [];
     acc[key].push(item);
     return acc;
-  }, {});
+  }, {} as Record<string, any[]>);
   const dayKeys = Object.keys(itemsByDay).sort((a, b) => {
     if (a === 'Chung') return 1;
     if (b === 'Chung') return -1;

@@ -23,7 +23,7 @@ export interface ResourceTemplate {
 
 export interface SupplierDetail extends Supplier {
   resources: Resource[];
-  _count: { bookings: number };
+  _count: { bookings: number; resources: number };
 }
 
 export const suppliersApi = {
