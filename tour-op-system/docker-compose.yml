@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tour_op_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tour_op_db
+      POSTGRES_USER: tour_op_user
+      POSTGRES_PASSWORD: tour_op_pass_2024
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - tour_op_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tour_op_user -d tour_op_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: tour_op_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass "redis_pass_2024"
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - tour_op_net
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: tour_op_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@tourop.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    networks:
+      - tour_op_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  tour_op_net:
+    driver: bridge
