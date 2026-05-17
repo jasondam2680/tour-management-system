@@ -15,15 +15,56 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard',   href: '/dashboard',            icon: '⊞' },
-  { label: 'Customers',   href: '/dashboard/customers',  icon: '👥', roles: ['SUPER_ADMIN','ADMIN','SALES','OP','FINANCE'] },
-  { label: 'Suppliers',   href: '/dashboard/suppliers',  icon: '🏭', roles: ['SUPER_ADMIN','ADMIN','OP'] },
-  { label: 'Leads',       href: '/dashboard/leads',      icon: '🎯', roles: ['SUPER_ADMIN','ADMIN','SALES'] },
-  { label: 'Quotations',  href: '/dashboard/quotations', icon: '📋', roles: ['SUPER_ADMIN','ADMIN','SALES'] },
-  { label: 'Itineraries', href: '/dashboard/itineraries', icon: '🗺️', roles: ['SUPER_ADMIN','ADMIN','SALES','OP'] },
-  { label: 'Tours',       href: '/dashboard/tours',      icon: '✈️' },
-  { label: 'Bookings',    href: '/dashboard/bookings',   icon: '📅', roles: ['SUPER_ADMIN','ADMIN','OP'] },
-  { label: 'Finance',     href: '/dashboard/finance',    icon: '💰', roles: ['SUPER_ADMIN','ADMIN','FINANCE'] },
+  { label: 'Dashboard', href: '/dashboard', icon: '⊞' },
+  {
+    label: 'Customers',
+    href: '/dashboard/customers',
+    icon: '👥',
+    roles: ['SUPER_ADMIN', 'ADMIN', 'SALES', 'OP', 'FINANCE'],
+  },
+  {
+    label: 'Suppliers',
+    href: '/dashboard/suppliers',
+    icon: '🏭',
+    roles: ['SUPER_ADMIN', 'ADMIN', 'OP'],
+  },
+  {
+    label: 'Leads',
+    href: '/dashboard/leads',
+    icon: '🎯',
+    roles: ['SUPER_ADMIN', 'ADMIN', 'SALES'],
+  },
+  {
+    label: 'Quotations',
+    href: '/dashboard/quotations',
+    icon: '📋',
+    roles: ['SUPER_ADMIN', 'ADMIN', 'SALES'],
+  },
+  {
+    label: 'Group Tours',
+    href: '/dashboard/group-tours',
+    icon: '👥',
+    roles: ['SUPER_ADMIN', 'ADMIN', 'SALES', 'OP'],
+  },
+  {
+    label: 'Itineraries',
+    href: '/dashboard/itineraries',
+    icon: '🗺️',
+    roles: ['SUPER_ADMIN', 'ADMIN', 'SALES', 'OP'],
+  },
+  { label: 'Tours', href: '/dashboard/tours', icon: '✈️' },
+  {
+    label: 'Bookings',
+    href: '/dashboard/bookings',
+    icon: '📅',
+    roles: ['SUPER_ADMIN', 'ADMIN', 'OP'],
+  },
+  {
+    label: 'Finance',
+    href: '/dashboard/finance',
+    icon: '💰',
+    roles: ['SUPER_ADMIN', 'ADMIN', 'FINANCE'],
+  },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -39,9 +80,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!isAuthenticated || !user) return null;
 
-  const visibleItems = NAV_ITEMS.filter(
-    (item) => !item.roles || item.roles.includes(user.role),
-  );
+  const visibleItems = NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(user.role));
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
@@ -85,7 +124,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex items-center gap-3 px-2 py-2">
             <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
               <span className="text-white text-xs font-bold">
-                {user.firstName[0]}{user.lastName[0]}
+                {user.firstName[0]}
+                {user.lastName[0]}
               </span>
             </div>
             <div className="flex-1 overflow-hidden">
@@ -106,9 +146,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 ml-60 min-h-screen">
-        {children}
-      </main>
+      <main className="flex-1 ml-60 min-h-screen">{children}</main>
     </div>
   );
 }

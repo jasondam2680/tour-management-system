@@ -109,6 +109,11 @@ enum Currency {
   AUD
 }
 
+enum TourQuotationType {
+  GROUP
+  PRIVATE
+}
+
 enum IncidentSeverity {
   LOW
   MEDIUM
@@ -359,6 +364,8 @@ model Quotation {
   createdById    String
   code           String          @unique
   title          String
+  tourQuotationType TourQuotationType?
+  groupTourTemplateId String?
   status         QuotationStatus @default(DRAFT)
   version        Int             @default(1)
   pax            Int             @default(1)
@@ -401,6 +408,7 @@ model Quotation {
   @@index([organizationId])
   @@index([status])
   @@index([customerId])
+  @@index([tourQuotationType])
   @@map("quotations")
 }
 
@@ -441,6 +449,14 @@ model Itinerary {
   code             String   @unique
   title            String
   currentVersionId String?  @unique
+  isTemplate       Boolean  @default(false)
+  templateName     String?
+  packageIncludes  Json?
+  packagePrice     Decimal? @db.Decimal(15, 2)
+  packagePriceCurrency Currency @default(USD)
+  duration         Int?
+  minPax           Int?
+  isActive         Boolean  @default(true)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -451,6 +467,7 @@ model Itinerary {
 
   @@index([organizationId])
   @@index([code])
+  @@index([isTemplate])
   @@map("itineraries")
 }
 
@@ -609,7 +626,7 @@ model TourDocument {
 model Booking {
   id              String        @id @default(cuid())
   tourId          String
-  supplierId      String
+  supplierId      String?
   code            String        @unique
   category        SupplierCategory
   status          BookingStatus @default(DRAFT)
@@ -637,7 +654,7 @@ model Booking {
   updatedAt       DateTime      @updatedAt
 
   tour     Tour              @relation(fields: [tourId], references: [id])
-  supplier Supplier          @relation(fields: [supplierId], references: [id])
+  supplier Supplier?         @relation(fields: [supplierId], references: [id])
   items    BookingItem[]
   payments SupplierPayment[]
   inquiries PriceInquiry[]
@@ -736,7 +753,7 @@ model Receipt {
 model SupplierPayment {
   id           String   @id @default(cuid())
   bookingId    String
-  supplierId   String
+  supplierId   String?
   amount       Decimal  @db.Decimal(15, 2)
   currency     Currency @default(VND)
   exchangeRate Decimal  @default(1) @db.Decimal(10, 4)
@@ -748,7 +765,7 @@ model SupplierPayment {
   paidAt       DateTime?
   createdAt    DateTime @default(now())
   booking      Booking  @relation(fields: [bookingId], references: [id])
-  supplier     Supplier @relation(fields: [supplierId], references: [id])
+  supplier     Supplier? @relation(fields: [supplierId], references: [id])
 
   @@index([bookingId])
   @@map("supplier_payments")

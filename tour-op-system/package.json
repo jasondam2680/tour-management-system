@@ -1,7 +1,11 @@
 {
   "name": "tour-op-system",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "packageManager": "npm@10.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",

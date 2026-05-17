@@ -7,10 +7,10 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  const app    = await NestFactory.create(AppModule);
-  const cfg    = app.get(ConfigService);
-  const port   = cfg.get('app.port', 3001);
-  const env    = cfg.get('app.nodeEnv', 'development');
+  const app = await NestFactory.create(AppModule);
+  const cfg = app.get(ConfigService);
+  const port = cfg.get('app.port', 3001);
+  const env = cfg.get('app.nodeEnv', 'development');
 
   app.use(helmet());
   app.enableCors({
@@ -40,7 +40,7 @@ async function bootstrap() {
     logger.log(`📚 Swagger: http://localhost:${port}/api/docs`);
   }
 
-  await app.listen(port);
+  await app.listen(port, 'localhost');
   logger.log(`🚀 API running: http://localhost:${port}/api/v1`);
 }
 

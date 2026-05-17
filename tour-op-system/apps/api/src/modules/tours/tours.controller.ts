@@ -1,6 +1,13 @@
 import {
-  Controller, Get, Post, Patch, Delete,
-  Param, Body, Query, UseGuards,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ToursService } from './tours.service';
@@ -52,19 +59,31 @@ export class ToursController {
 
   @Patch(':id/status')
   @ApiOperation({ summary: 'Đổi trạng thái tour' })
-  changeStatus(@Param('id') id: string, @CurrentUser() user: any, @Body() dto: ChangeTourStatusDto) {
+  changeStatus(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body() dto: ChangeTourStatusDto,
+  ) {
     return this.toursService.changeStatus(id, user.organizationId, dto);
   }
 
   @Post(':id/assignments')
   @ApiOperation({ summary: 'Phân công hướng dẫn viên / tài xế' })
-  addAssignment(@Param('id') tourId: string, @CurrentUser() user: any, @Body() dto: AddAssignmentDto) {
+  addAssignment(
+    @Param('id') tourId: string,
+    @CurrentUser() user: any,
+    @Body() dto: AddAssignmentDto,
+  ) {
     return this.toursService.addAssignment(tourId, user.organizationId, dto);
   }
 
   @Delete(':id/assignments/:assignmentId')
   @ApiOperation({ summary: 'Xoá phân công' })
-  removeAssignment(@Param('id') tourId: string, @Param('assignmentId') assignmentId: string, @CurrentUser() user: any) {
+  removeAssignment(
+    @Param('id') tourId: string,
+    @Param('assignmentId') assignmentId: string,
+    @CurrentUser() user: any,
+  ) {
     return this.toursService.removeAssignment(tourId, assignmentId, user.organizationId);
   }
 
@@ -72,5 +91,11 @@ export class ToursController {
   @ApiOperation({ summary: 'Ghi nhận sự cố trong tour' })
   addIncident(@Param('id') tourId: string, @CurrentUser() user: any, @Body() dto: AddIncidentDto) {
     return this.toursService.addIncident(tourId, user.organizationId, dto);
+  }
+
+  @Post('convert-from-quotation/:quotationId')
+  @ApiOperation({ summary: 'Chuyển báo giá đã duyệt thành Tour + Bookings tự động' })
+  convertFromQuotation(@Param('quotationId') quotationId: string, @CurrentUser() user: any) {
+    return this.toursService.convertFromQuotation(quotationId, user.organizationId);
   }
 }

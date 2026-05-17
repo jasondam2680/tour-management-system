@@ -16,11 +16,6 @@ export interface Resource {
   isActive: boolean;
 }
 
-export interface ResourceTemplate {
-  name: string;
-  unit: string;
-}
-
 export interface SupplierDetail extends Supplier {
   resources: Resource[];
   _count: { bookings: number; resources: number };
@@ -30,23 +25,16 @@ export const suppliersApi = {
   getAll: (params?: Record<string, any>) =>
     api.get<PaginatedResult<Supplier>>('/suppliers', params),
 
-  getOne: (id: string) =>
-    api.get<SupplierDetail>(`/suppliers/${id}`),
+  getOne: (id: string) => api.get<SupplierDetail>(`/suppliers/${id}`),
 
   getStats: () =>
     api.get<{ total: number; preferred: number; byCategory: any[] }>('/suppliers/stats'),
 
-  create: (data: Record<string, any>) =>
-    api.post<Supplier>('/suppliers', data),
+  create: (data: Record<string, any>) => api.post<Supplier>('/suppliers', data),
 
-  update: (id: string, data: Record<string, any>) =>
-    api.patch<Supplier>(`/suppliers/${id}`, data),
+  update: (id: string, data: Record<string, any>) => api.patch<Supplier>(`/suppliers/${id}`, data),
 
-  remove: (id: string) =>
-    api.delete(`/suppliers/${id}`),
-
-  getTemplates: (category: string) =>
-    api.get<ResourceTemplate[]>(`/suppliers/resource-templates/${category}`),
+  remove: (id: string) => api.delete(`/suppliers/${id}`),
 
   createResource: (supplierId: string, data: Record<string, any>) =>
     api.post<Resource>(`/suppliers/${supplierId}/resources`, data),

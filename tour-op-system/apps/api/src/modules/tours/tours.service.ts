@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TourStatus } from '@prisma/client';
 import { CreateTourDto } from './dto/create-tour.dto';
@@ -39,11 +35,19 @@ export class ToursService {
 
     const [data, total] = await Promise.all([
       this.prisma.tour.findMany({
-        where, skip, take: limit,
+        where,
+        skip,
+        take: limit,
         orderBy: { travelDateFrom: 'asc' },
         include: {
-          customer: { select: { id: true, firstName: true, lastName: true, companyName: true, type: true } },
-          assignments: { include: { user: { select: { id: true, firstName: true, lastName: true, role: true } } } },
+          customer: {
+            select: { id: true, firstName: true, lastName: true, companyName: true, type: true },
+          },
+          assignments: {
+            include: {
+              user: { select: { id: true, firstName: true, lastName: true, role: true } },
+            },
+          },
           _count: { select: { bookings: true, invoices: true } },
         },
       }),
@@ -58,9 +62,20 @@ export class ToursService {
       where: { id, organizationId },
       include: {
         customer: true,
-        quotation: { select: { id: true, code: true, title: true, totalAmount: true, currency: true } },
-        assignments: { include: { user: { select: { id: true, firstName: true, lastName: true, role: true, phone: true } } } },
-        bookings: { include: { supplier: { select: { id: true, name: true, category: true } } }, orderBy: { serviceDate: 'asc' } },
+        quotation: {
+          select: { id: true, code: true, title: true, totalAmount: true, currency: true },
+        },
+        assignments: {
+          include: {
+            user: {
+              select: { id: true, firstName: true, lastName: true, role: true, phone: true },
+            },
+          },
+        },
+        bookings: {
+          include: { supplier: { select: { id: true, name: true, category: true } } },
+          orderBy: { serviceDate: 'asc' },
+        },
         invoices: { orderBy: { createdAt: 'desc' } },
         incidents: { orderBy: { occurredAt: 'desc' } },
         documents: { orderBy: { uploadedAt: 'desc' } },
@@ -77,7 +92,8 @@ export class ToursService {
     if (dto.quotationId) {
       const quotation = await this.prisma.quotation.findUnique({ where: { id: dto.quotationId } });
       if (!quotation) throw new NotFoundException('Quotation not found');
-      if (quotation.organizationId !== organizationId) throw new BadRequestException('Quotation does not belong to this organization');
+      if (quotation.organizationId !== organizationId)
+        throw new BadRequestException('Quotation does not belong to this organization');
 
       quotationSnapshot = {
         customerId: dto.customerId ?? quotation.customerId,
@@ -88,13 +104,18 @@ export class ToursService {
         currency: quotation.currency,
       };
 
-      await this.prisma.quotation.update({ where: { id: dto.quotationId }, data: { status: 'CONVERTED' } });
+      await this.prisma.quotation.update({
+        where: { id: dto.quotationId },
+        data: { status: 'CONVERTED' },
+      });
     }
 
     return this.prisma.tour.create({
       data: {
-        organizationId, code,
-        ...quotationSnapshot, ...dto,
+        organizationId,
+        code,
+        ...quotationSnapshot,
+        ...dto,
         paxChild: dto.paxChild ?? 0,
         travelDateFrom: new Date(dto.travelDateFrom),
         travelDateTo: new Date(dto.travelDateTo),
@@ -119,11 +140,11 @@ export class ToursService {
     const { status, reason } = dto;
 
     const validTransitions: Record<TourStatus, TourStatus[]> = {
-      PLANNING:    [TourStatus.CONFIRMED, TourStatus.CANCELLED],
-      CONFIRMED:   [TourStatus.IN_PROGRESS, TourStatus.CANCELLED],
+      PLANNING: [TourStatus.CONFIRMED, TourStatus.CANCELLED],
+      CONFIRMED: [TourStatus.IN_PROGRESS, TourStatus.CANCELLED],
       IN_PROGRESS: [TourStatus.COMPLETED, TourStatus.CANCELLED],
-      COMPLETED:   [],
-      CANCELLED:   [],
+      COMPLETED: [],
+      CANCELLED: [],
     };
 
     if (!validTransitions[tour.status].includes(status)) {
@@ -134,10 +155,13 @@ export class ToursService {
     }
 
     const timestamps: any = {};
-    if (status === TourStatus.CONFIRMED)   timestamps.confirmedAt  = new Date();
-    if (status === TourStatus.IN_PROGRESS) timestamps.startedAt    = new Date();
-    if (status === TourStatus.COMPLETED)   timestamps.completedAt  = new Date();
-    if (status === TourStatus.CANCELLED) { timestamps.cancelledAt  = new Date(); timestamps.cancelReason = reason; }
+    if (status === TourStatus.CONFIRMED) timestamps.confirmedAt = new Date();
+    if (status === TourStatus.IN_PROGRESS) timestamps.startedAt = new Date();
+    if (status === TourStatus.COMPLETED) timestamps.completedAt = new Date();
+    if (status === TourStatus.CANCELLED) {
+      timestamps.cancelledAt = new Date();
+      timestamps.cancelReason = reason;
+    }
 
     return this.prisma.tour.update({ where: { id }, data: { status, ...timestamps } });
   }
@@ -166,7 +190,11 @@ export class ToursService {
       this.prisma.tour.count({ where: { organizationId } }),
       this.prisma.tour.groupBy({ by: ['status'], where: { organizationId }, _count: true }),
       this.prisma.tour.count({
-        where: { organizationId, status: { in: [TourStatus.PLANNING, TourStatus.CONFIRMED] }, travelDateFrom: { gte: now } },
+        where: {
+          organizationId,
+          status: { in: [TourStatus.PLANNING, TourStatus.CONFIRMED] },
+          travelDateFrom: { gte: now },
+        },
       }),
       this.prisma.tour.aggregate({
         where: { organizationId, status: TourStatus.COMPLETED },
@@ -175,16 +203,133 @@ export class ToursService {
     ]);
 
     return {
-      total, upcoming,
+      total,
+      upcoming,
       byStatus: Object.fromEntries(byStatus.map((s) => [s.status, s._count])),
       totalRevenue: Number(financial._sum.sellingPrice ?? 0),
-      totalProfit:  Number(financial._sum.profitAmount ?? 0),
+      totalProfit: Number(financial._sum.profitAmount ?? 0),
     };
   }
 
   private async generateCode(organizationId: string): Promise<string> {
-    const year  = new Date().getFullYear();
+    const year = new Date().getFullYear();
     const count = await this.prisma.tour.count({ where: { organizationId } });
     return `TOU-${year}-${String(count + 1).padStart(4, '0')}`;
+  }
+
+  async convertFromQuotation(quotationId: string, organizationId: string) {
+    const quotation = await this.prisma.quotation.findFirst({
+      where: { id: quotationId, organizationId },
+      include: {
+        items: { orderBy: [{ day: 'asc' }, { sortOrder: 'asc' }] },
+        itineraryVersion: {
+          include: {
+            days: {
+              orderBy: { dayNumber: 'asc' },
+              include: { activities: { orderBy: { sortOrder: 'asc' } } },
+            },
+          },
+        },
+      },
+    });
+
+    if (!quotation) throw new NotFoundException('Quotation not found');
+    if (quotation.status !== 'APPROVED') {
+      throw new BadRequestException('Quotation must be APPROVED to convert to tour');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Create Tour
+      const tourCode = await this.generateCodeForTx(tx, organizationId);
+      const tour = await tx.tour.create({
+        data: {
+          organizationId,
+          code: tourCode,
+          title: quotation.title,
+          customerId: quotation.customerId,
+          pax: quotation.pax,
+          paxAdult: quotation.paxAdult,
+          paxChild: quotation.paxChild,
+          travelDateFrom: quotation.travelDateFrom || new Date(),
+          travelDateTo: quotation.travelDateTo || new Date(),
+          destination: quotation.destination,
+          sellingPrice: quotation.totalAmount,
+          totalCost: quotation.totalCost,
+          profitAmount: quotation.profitAmount,
+          profitMargin: quotation.profitMargin,
+          currency: quotation.currency,
+          notes: quotation.notes,
+          internalNotes: quotation.internalNotes,
+          specialRequests: '',
+        },
+      });
+
+      // 2. Create bookings from quotation items
+      const categoryMap: Record<string, string> = {
+        hotel: 'HOTEL',
+        resort: 'RESORT',
+        transport: 'TRANSPORT',
+        boat: 'BOAT',
+        restaurant: 'RESTAURANT',
+        guide: 'GUIDE',
+        attraction: 'ATTRACTION',
+        visa: 'VISA',
+        insurance: 'INSURANCE',
+        other: 'OTHER',
+        tour_package: 'OTHER',
+      };
+
+      const bookings: any[] = [];
+      for (const item of quotation.items) {
+        if (!item.isIncluded) continue;
+
+        const bookingData: any = {
+          tourId: tour.id,
+          code: await this.generateBookingCodeForTx(tx, organizationId),
+          category: (categoryMap[item.category?.toLowerCase()] || 'OTHER') as any,
+          status: 'DRAFT',
+          title: item.name,
+          serviceDate: item.date || quotation.travelDateFrom || new Date(),
+          quantity: item.quantity,
+          unitCost: item.buyingPrice,
+          totalCost: item.totalCost,
+          currency: item.currency,
+          notes: item.description,
+          internalNotes: item.notes,
+        };
+
+        if (item.resourceId) {
+          bookingData.supplierId = item.resourceId;
+        }
+
+        const booking = await tx.booking.create({
+          data: bookingData,
+          include: { supplier: { select: { id: true, name: true, category: true } } },
+        });
+        bookings.push(booking);
+      }
+
+      // 3. Update quotation status
+      await tx.quotation.update({
+        where: { id: quotationId },
+        data: { status: 'CONVERTED' },
+      });
+
+      return { tour, bookings, quotationId };
+    });
+  }
+
+  private async generateCodeForTx(tx: any, organizationId: string): Promise<string> {
+    const year = new Date().getFullYear();
+    const count = await tx.tour.count({ where: { organizationId } });
+    return `TOU-${year}-${String(count + 1).padStart(4, '0')}`;
+  }
+
+  private async generateBookingCodeForTx(tx: any, organizationId: string): Promise<string> {
+    const year = new Date().getFullYear();
+    const count = await tx.booking.count({
+      where: { tour: { organizationId } },
+    });
+    return `BOK-${year}-${String(count + 1).padStart(4, '0')}`;
   }
 }

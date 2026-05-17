@@ -1,5 +1,8 @@
 import {
-  Injectable, NotFoundException, BadRequestException, ForbiddenException,
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateQuotationDto } from './dto/create-quotation.dto';
@@ -10,24 +13,24 @@ import { QuotationStatus } from '@prisma/client';
 
 // Status transitions for quotations
 const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
-  DRAFT:       ['SENT', 'REJECTED'],
-  SENT:        ['VIEWED', 'NEGOTIATING', 'APPROVED', 'REJECTED', 'EXPIRED'],
-  VIEWED:      ['NEGOTIATING', 'APPROVED', 'REJECTED', 'EXPIRED'],
+  DRAFT: ['SENT', 'REJECTED'],
+  SENT: ['VIEWED', 'NEGOTIATING', 'APPROVED', 'REJECTED', 'EXPIRED'],
+  VIEWED: ['NEGOTIATING', 'APPROVED', 'REJECTED', 'EXPIRED'],
   NEGOTIATING: ['APPROVED', 'REJECTED', 'EXPIRED', 'DRAFT'],
-  APPROVED:    ['CONVERTED'],
-  REJECTED:    ['DRAFT'],
-  EXPIRED:     ['DRAFT'],
-  CONVERTED:   [],
+  APPROVED: ['CONVERTED'],
+  REJECTED: ['DRAFT'],
+  EXPIRED: ['DRAFT'],
+  CONVERTED: [],
 };
 
 interface Totals {
-  subtotal:      number;
-  totalCost:     number;
-  discountAmt:   number;
-  taxAmount:     number;
-  totalAmount:   number;
-  profitAmount:  number;
-  profitMargin:  number;
+  subtotal: number;
+  totalCost: number;
+  discountAmt: number;
+  taxAmount: number;
+  totalAmount: number;
+  profitAmount: number;
+  profitMargin: number;
 }
 
 @Injectable()
@@ -38,38 +41,36 @@ export class QuotationsService {
   private calcTotals(
     items: QuotationItemDto[],
     discountAmount = 0,
-    discountPct    = 0,
-    taxPct         = 0,
+    discountPct = 0,
+    taxPct = 0,
   ): Totals {
-    let subtotal  = 0;
+    let subtotal = 0;
     let totalCost = 0;
 
     for (const item of items) {
       if (!item.isIncluded && item.isIncluded !== undefined) continue;
-      const qty        = item.quantity ?? 1;
-      const selling    = (item.sellingPrice ?? 0) * qty;
-      const cost       = (item.buyingPrice  ?? 0) * qty;
-      subtotal  += selling;
+      const qty = item.quantity ?? 1;
+      const selling = (item.sellingPrice ?? 0) * qty;
+      const cost = (item.buyingPrice ?? 0) * qty;
+      subtotal += selling;
       totalCost += cost;
     }
 
     // Apply discount
-    const discountAmt = discountAmount > 0
-      ? discountAmount
-      : (subtotal * discountPct) / 100;
+    const discountAmt = discountAmount > 0 ? discountAmount : (subtotal * discountPct) / 100;
 
     const afterDiscount = subtotal - discountAmt;
-    const taxAmount     = (afterDiscount * taxPct) / 100;
-    const totalAmount   = afterDiscount + taxAmount;
-    const profitAmount  = totalAmount - totalCost;
-    const profitMargin  = totalAmount > 0 ? (profitAmount / totalAmount) * 100 : 0;
+    const taxAmount = (afterDiscount * taxPct) / 100;
+    const totalAmount = afterDiscount + taxAmount;
+    const profitAmount = totalAmount - totalCost;
+    const profitMargin = totalAmount > 0 ? (profitAmount / totalAmount) * 100 : 0;
 
     return {
-      subtotal:     Math.round(subtotal * 100) / 100,
-      totalCost:    Math.round(totalCost * 100) / 100,
-      discountAmt:  Math.round(discountAmt * 100) / 100,
-      taxAmount:    Math.round(taxAmount * 100) / 100,
-      totalAmount:  Math.round(totalAmount * 100) / 100,
+      subtotal: Math.round(subtotal * 100) / 100,
+      totalCost: Math.round(totalCost * 100) / 100,
+      discountAmt: Math.round(discountAmt * 100) / 100,
+      taxAmount: Math.round(taxAmount * 100) / 100,
+      totalAmount: Math.round(totalAmount * 100) / 100,
       profitAmount: Math.round(profitAmount * 100) / 100,
       profitMargin: Math.round(profitMargin * 100) / 100,
     };
@@ -92,39 +93,162 @@ export class QuotationsService {
   // ── CREATE ───────────────────────────────────────────────────
   async create(dto: CreateQuotationDto, organizationId: string, createdById: string) {
     const code = await this.generateCode(organizationId);
-    const items = dto.items ?? [];
+    let items = dto.items ?? [];
+    let itineraryVersionId: string | undefined;
+
+    // Handle GROUP tour: copy from template
+    if (dto.tourQuotationType === 'GROUP' && dto.groupTourTemplateId) {
+      const template = await this.prisma.itinerary.findFirst({
+        where: { id: dto.groupTourTemplateId, organizationId, isTemplate: true },
+        include: {
+          currentVersion: {
+            include: {
+              days: {
+                orderBy: { dayNumber: 'asc' },
+                include: { activities: { orderBy: { sortOrder: 'asc' } } },
+              },
+            },
+          },
+        },
+      });
+
+      if (!template || !template.currentVersion) {
+        throw new BadRequestException('Group tour template not found or has no itinerary');
+      }
+
+      // Create a new itinerary version for this quotation (snapshot)
+      const newVersion = await this.prisma.itineraryVersion.create({
+        data: {
+          itineraryId: template.id,
+          versionNumber:
+            (await this.prisma.itineraryVersion.count({ where: { itineraryId: template.id } })) + 1,
+          title: template.title,
+          overview: template.currentVersion.overview,
+          notes: template.currentVersion.notes,
+          isActive: false,
+          days: {
+            create: template.currentVersion.days.map((day) => ({
+              dayNumber: day.dayNumber,
+              title: day.title,
+              description: day.description,
+              meals: day.meals,
+              accommodation: day.accommodation,
+              activities: {
+                create: day.activities.map((a) => ({
+                  sortOrder: a.sortOrder,
+                  time: a.time,
+                  title: a.title,
+                  description: a.description,
+                  location: a.location,
+                  duration: a.duration,
+                  notes: a.notes,
+                })),
+              },
+            })),
+          },
+        },
+      });
+
+      itineraryVersionId = newVersion.id;
+
+      // Auto-create items from template package includes if no items provided
+      if (items.length === 0 && template.packagePrice) {
+        const pax = dto.pax || 1;
+        items = [
+          {
+            category: 'tour_package',
+            name: template.templateName || template.title,
+            description: template.currentVersion.overview || 'Group tour package',
+            quantity: pax,
+            unit: 'per_person',
+            sellingPrice: Number(template.packagePrice),
+            buyingPrice: Number(template.packagePrice) * 0.7,
+            currency: template.packagePriceCurrency || dto.currency || 'USD',
+            isIncluded: true,
+            isOptional: false,
+          },
+        ];
+      }
+    }
+
+    // Handle PRIVATE tour: custom itinerary
+    if (dto.tourQuotationType === 'PRIVATE' && dto.itinerary?.days?.length) {
+      const newItinerary = await this.prisma.itinerary.create({
+        data: {
+          organizationId,
+          code: await this.generateCode(organizationId),
+          title: dto.title,
+          isTemplate: false,
+        },
+      });
+
+      const newVersion = await this.prisma.itineraryVersion.create({
+        data: {
+          itineraryId: newItinerary.id,
+          versionNumber: 1,
+          title: dto.title,
+          overview: dto.itinerary.overview,
+          notes: dto.itinerary.notes,
+          isActive: false,
+          days: {
+            create: dto.itinerary.days.map((day) => ({
+              dayNumber: day.dayNumber,
+              title: day.title,
+              description: day.description,
+              meals: day.meals || [],
+              accommodation: day.accommodation,
+              activities: {
+                create: (day.activities || []).map((a) => ({
+                  sortOrder: a.sortOrder ?? 0,
+                  time: a.time,
+                  title: a.title,
+                  description: a.description,
+                  location: a.location,
+                  duration: a.duration,
+                  notes: a.notes,
+                })),
+              },
+            })),
+          },
+        },
+      });
+
+      itineraryVersionId = newVersion.id;
+    }
+
     const totals = this.calcTotals(items, dto.discountAmount, dto.discountPct, dto.taxPct);
 
     // Build item data with per-item totals and markup
     const itemsData = items.map((item, idx) => {
-      const qty         = item.quantity ?? 1;
-      const totalSell   = (item.sellingPrice ?? 0) * qty;
-      const totalCost   = (item.buyingPrice ?? 0) * qty;
-      const markup      = item.buyingPrice > 0
-        ? ((item.sellingPrice - item.buyingPrice) / item.buyingPrice) * 100
-        : 0;
+      const qty = item.quantity ?? 1;
+      const totalSell = (item.sellingPrice ?? 0) * qty;
+      const totalCost = (item.buyingPrice ?? 0) * qty;
+      const markup =
+        item.buyingPrice > 0
+          ? ((item.sellingPrice - item.buyingPrice) / item.buyingPrice) * 100
+          : 0;
 
       return {
-        day:          item.day,
-        sortOrder:    item.sortOrder ?? idx,
-        category:     item.category,
-        name:         item.name,
-        description:  item.description,
-        resourceId:   item.resourceId,
-        quantity:     qty,
-        unit:         item.unit ?? 'per_person',
+        day: item.day,
+        sortOrder: item.sortOrder ?? idx,
+        category: item.category,
+        name: item.name,
+        description: item.description,
+        resourceId: item.resourceId,
+        quantity: qty,
+        unit: item.unit ?? 'per_person',
         sellingPrice: item.sellingPrice,
-        buyingPrice:  item.buyingPrice,
-        markup:       Math.round(markup * 100) / 100,
+        buyingPrice: item.buyingPrice,
+        markup: Math.round(markup * 100) / 100,
         totalSelling: totalSell,
         totalCost,
-        currency:     item.currency ?? dto.currency ?? 'USD',
-        date:         item.date ? new Date(item.date) : undefined,
-        startTime:    item.startTime,
-        endTime:      item.endTime,
-        notes:        item.notes,
-        isOptional:   item.isOptional ?? false,
-        isIncluded:   item.isIncluded ?? true,
+        currency: item.currency ?? dto.currency ?? 'USD',
+        date: item.date ? new Date(item.date) : undefined,
+        startTime: item.startTime,
+        endTime: item.endTime,
+        notes: item.notes,
+        isOptional: item.isOptional ?? false,
+        isIncluded: item.isIncluded ?? true,
       };
     });
 
@@ -133,37 +257,45 @@ export class QuotationsService {
         organizationId,
         createdById,
         code,
-        title:         dto.title,
-        customerId:    dto.customerId,
-        leadId:        dto.leadId,
-        pax:           dto.pax,
-        paxAdult:      dto.paxAdult ?? dto.pax,
-        paxChild:      dto.paxChild ?? 0,
+        title: dto.title,
+        customerId: dto.customerId,
+        leadId: dto.leadId,
+        pax: dto.pax,
+        paxAdult: dto.paxAdult ?? dto.pax,
+        paxChild: dto.paxChild ?? 0,
         travelDateFrom: dto.travelDateFrom ? new Date(dto.travelDateFrom) : undefined,
-        travelDateTo:   dto.travelDateTo   ? new Date(dto.travelDateTo)   : undefined,
-        duration:       dto.duration,
-        destination:    dto.destination,
-        tourType:       dto.tourType,
-        subtotal:       totals.subtotal,
+        travelDateTo: dto.travelDateTo ? new Date(dto.travelDateTo) : undefined,
+        duration: dto.duration,
+        destination: dto.destination,
+        tourType: dto.tourType,
+        tourQuotationType: dto.tourQuotationType,
+        groupTourTemplateId: dto.groupTourTemplateId,
+        itineraryVersionId,
+        subtotal: totals.subtotal,
         discountAmount: totals.discountAmt,
-        discountPct:    dto.discountPct ?? 0,
-        taxAmount:      totals.taxAmount,
-        taxPct:         dto.taxPct ?? 0,
-        totalAmount:    totals.totalAmount,
-        totalCost:      totals.totalCost,
-        profitAmount:   totals.profitAmount,
-        profitMargin:   totals.profitMargin,
-        currency:       dto.currency ?? 'USD',
-        validUntil:     dto.validUntil ? new Date(dto.validUntil) : undefined,
-        notes:          dto.notes,
-        internalNotes:  dto.internalNotes,
-        status:         'DRAFT',
-        items:          { create: itemsData },
+        discountPct: dto.discountPct ?? 0,
+        taxAmount: totals.taxAmount,
+        taxPct: dto.taxPct ?? 0,
+        totalAmount: totals.totalAmount,
+        totalCost: totals.totalCost,
+        profitAmount: totals.profitAmount,
+        profitMargin: totals.profitMargin,
+        currency: dto.currency ?? 'USD',
+        validUntil: dto.validUntil ? new Date(dto.validUntil) : undefined,
+        notes: dto.notes,
+        internalNotes: dto.internalNotes,
+        status: 'DRAFT',
+        items: { create: itemsData },
       },
       include: {
-        items:     { orderBy: [{ day: 'asc' }, { sortOrder: 'asc' }] },
-        customer:  { select: { id: true, firstName: true, lastName: true, companyName: true, type: true } },
+        items: { orderBy: [{ day: 'asc' }, { sortOrder: 'asc' }] },
+        customer: {
+          select: { id: true, firstName: true, lastName: true, companyName: true, type: true },
+        },
         createdBy: { select: { id: true, firstName: true, lastName: true } },
+        itineraryVersion: {
+          include: { days: { include: { activities: true }, orderBy: { dayNumber: 'asc' } } },
+        },
       },
     });
   }
@@ -171,19 +303,25 @@ export class QuotationsService {
   // ── LIST ─────────────────────────────────────────────────────
   async findAll(query: QueryQuotationDto, organizationId: string) {
     const {
-      search, status, customerId, leadId,
-      page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'desc',
+      search,
+      status,
+      customerId,
+      leadId,
+      page = 1,
+      limit = 20,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
     } = query;
 
     const where: any = {
       organizationId,
-      ...(status     && { status }),
+      ...(status && { status }),
       ...(customerId && { customerId }),
-      ...(leadId     && { leadId }),
+      ...(leadId && { leadId }),
       ...(search && {
         OR: [
-          { title:       { contains: search, mode: 'insensitive' } },
-          { code:        { contains: search, mode: 'insensitive' } },
+          { title: { contains: search, mode: 'insensitive' } },
+          { code: { contains: search, mode: 'insensitive' } },
           { destination: { contains: search, mode: 'insensitive' } },
         ],
       }),
@@ -195,9 +333,11 @@ export class QuotationsService {
         where,
         orderBy: { [sortBy]: sortOrder },
         include: {
-          customer:  { select: { id: true, firstName: true, lastName: true, companyName: true, type: true } },
+          customer: {
+            select: { id: true, firstName: true, lastName: true, companyName: true, type: true },
+          },
           createdBy: { select: { id: true, firstName: true, lastName: true } },
-          _count:    { select: { items: true } },
+          _count: { select: { items: true } },
         },
       },
       page,
@@ -210,11 +350,13 @@ export class QuotationsService {
     const q = await this.prisma.quotation.findFirst({
       where: { id, organizationId },
       include: {
-        items:     { orderBy: [{ day: 'asc' }, { sortOrder: 'asc' }] },
-        customer:  true,
-        lead:      { select: { id: true, title: true, status: true } },
+        items: { orderBy: [{ day: 'asc' }, { sortOrder: 'asc' }] },
+        customer: true,
+        lead: { select: { id: true, title: true, status: true } },
         createdBy: { select: { id: true, firstName: true, lastName: true } },
-        itineraryVersion: { include: { days: { include: { activities: true }, orderBy: { dayNumber: 'asc' } } } },
+        itineraryVersion: {
+          include: { days: { include: { activities: true }, orderBy: { dayNumber: 'asc' } } },
+        },
       },
     });
     if (!q) throw new NotFoundException(`Quotation ${id} not found`);
@@ -239,8 +381,8 @@ export class QuotationsService {
     const totals = this.calcTotals(
       items,
       dto.discountAmount ?? Number(existing.discountAmount),
-      dto.discountPct    ?? Number(existing.discountPct),
-      dto.taxPct         ?? Number(existing.taxPct),
+      dto.discountPct ?? Number(existing.discountPct),
+      dto.taxPct ?? Number(existing.taxPct),
     );
 
     // Recalculate items if provided
@@ -249,57 +391,59 @@ export class QuotationsService {
     }
 
     const updateData: any = {
-      ...(dto.title         && { title: dto.title }),
-      ...(dto.pax           && { pax: dto.pax }),
-      ...(dto.paxAdult      && { paxAdult: dto.paxAdult }),
+      ...(dto.title && { title: dto.title }),
+      ...(dto.pax && { pax: dto.pax }),
+      ...(dto.paxAdult && { paxAdult: dto.paxAdult }),
       ...(dto.paxChild !== undefined && { paxChild: dto.paxChild }),
       ...(dto.travelDateFrom && { travelDateFrom: new Date(dto.travelDateFrom) }),
-      ...(dto.travelDateTo   && { travelDateTo:   new Date(dto.travelDateTo) }),
-      ...(dto.duration       && { duration: dto.duration }),
-      ...(dto.destination    && { destination: dto.destination }),
-      ...(dto.tourType       && { tourType: dto.tourType }),
-      ...(dto.currency       && { currency: dto.currency }),
-      ...(dto.notes          && { notes: dto.notes }),
-      ...(dto.internalNotes  && { internalNotes: dto.internalNotes }),
-      ...(dto.validUntil     && { validUntil: new Date(dto.validUntil) }),
+      ...(dto.travelDateTo && { travelDateTo: new Date(dto.travelDateTo) }),
+      ...(dto.duration && { duration: dto.duration }),
+      ...(dto.destination && { destination: dto.destination }),
+      ...(dto.tourType && { tourType: dto.tourType }),
+      ...(dto.currency && { currency: dto.currency }),
+      ...(dto.notes && { notes: dto.notes }),
+      ...(dto.internalNotes && { internalNotes: dto.internalNotes }),
+      ...(dto.validUntil && { validUntil: new Date(dto.validUntil) }),
       ...(dto.rejectedReason && { rejectedReason: dto.rejectedReason }),
-      subtotal:       totals.subtotal,
+      subtotal: totals.subtotal,
       discountAmount: totals.discountAmt,
-      discountPct:    dto.discountPct    ?? existing.discountPct,
-      taxAmount:      totals.taxAmount,
-      taxPct:         dto.taxPct         ?? existing.taxPct,
-      totalAmount:    totals.totalAmount,
-      totalCost:      totals.totalCost,
-      profitAmount:   totals.profitAmount,
-      profitMargin:   totals.profitMargin,
-      version:        { increment: 1 },
+      discountPct: dto.discountPct ?? existing.discountPct,
+      taxAmount: totals.taxAmount,
+      taxPct: dto.taxPct ?? existing.taxPct,
+      totalAmount: totals.totalAmount,
+      totalCost: totals.totalCost,
+      profitAmount: totals.profitAmount,
+      profitMargin: totals.profitMargin,
+      version: { increment: 1 },
     };
 
     if (dto.items) {
       updateData.items = {
         create: dto.items.map((item, idx) => ({
-          day:          item.day,
-          sortOrder:    item.sortOrder ?? idx,
-          category:     item.category,
-          name:         item.name,
-          description:  item.description,
-          resourceId:   item.resourceId,
-          quantity:     item.quantity,
-          unit:         item.unit ?? 'per_person',
+          day: item.day,
+          sortOrder: item.sortOrder ?? idx,
+          category: item.category,
+          name: item.name,
+          description: item.description,
+          resourceId: item.resourceId,
+          quantity: item.quantity,
+          unit: item.unit ?? 'per_person',
           sellingPrice: item.sellingPrice,
-          buyingPrice:  item.buyingPrice,
-          markup:       item.buyingPrice > 0
-            ? Math.round(((item.sellingPrice - item.buyingPrice) / item.buyingPrice) * 10000) / 100
-            : 0,
+          buyingPrice: item.buyingPrice,
+          markup:
+            item.buyingPrice > 0
+              ? Math.round(((item.sellingPrice - item.buyingPrice) / item.buyingPrice) * 10000) /
+                100
+              : 0,
           totalSelling: item.sellingPrice * item.quantity,
-          totalCost:    item.buyingPrice  * item.quantity,
-          currency:     item.currency ?? dto.currency ?? 'USD',
-          date:         item.date ? new Date(item.date) : undefined,
-          startTime:    item.startTime,
-          endTime:      item.endTime,
-          notes:        item.notes,
-          isOptional:   item.isOptional ?? false,
-          isIncluded:   item.isIncluded ?? true,
+          totalCost: item.buyingPrice * item.quantity,
+          currency: item.currency ?? dto.currency ?? 'USD',
+          date: item.date ? new Date(item.date) : undefined,
+          startTime: item.startTime,
+          endTime: item.endTime,
+          notes: item.notes,
+          isOptional: item.isOptional ?? false,
+          isIncluded: item.isIncluded ?? true,
         })),
       };
     }
@@ -308,8 +452,10 @@ export class QuotationsService {
       where: { id },
       data: updateData,
       include: {
-        items:    { orderBy: [{ day: 'asc' }, { sortOrder: 'asc' }] },
-        customer: { select: { id: true, firstName: true, lastName: true, companyName: true, type: true } },
+        items: { orderBy: [{ day: 'asc' }, { sortOrder: 'asc' }] },
+        customer: {
+          select: { id: true, firstName: true, lastName: true, companyName: true, type: true },
+        },
       },
     });
   }
@@ -323,20 +469,18 @@ export class QuotationsService {
   ) {
     const q = await this.findOne(id, organizationId);
     const current = q.status as string;
-    const next    = newStatus as string;
+    const next = newStatus as string;
 
     if (!VALID_STATUS_TRANSITIONS[current]?.includes(next)) {
-      throw new BadRequestException(
-        `Cannot change quotation from ${current} to ${next}`,
-      );
+      throw new BadRequestException(`Cannot change quotation from ${current} to ${next}`);
     }
 
     const now = new Date();
     const statusMeta: Record<string, any> = {
-      SENT:      { sentAt: now },
-      VIEWED:    { viewedAt: now },
-      APPROVED:  { approvedAt: now },
-      REJECTED:  { rejectedAt: now, rejectedReason: reason },
+      SENT: { sentAt: now },
+      VIEWED: { viewedAt: now },
+      APPROVED: { approvedAt: now },
+      REJECTED: { rejectedAt: now, rejectedReason: reason },
     };
 
     return this.prisma.quotation.update({
@@ -352,65 +496,67 @@ export class QuotationsService {
       include: { items: true },
     });
     if (!original) throw new NotFoundException(`Quotation ${id} not found`);
-    const code     = await this.generateCode(organizationId);
+    const code = await this.generateCode(organizationId);
 
     return this.prisma.quotation.create({
       data: {
         organizationId,
         createdById,
         code,
-        title:          `[COPY] ${original.title}`,
-        customerId:     original.customerId,
-        leadId:         original.leadId ?? undefined,
-        pax:            original.pax,
-        paxAdult:       original.paxAdult,
-        paxChild:       original.paxChild,
+        title: `[COPY] ${original.title}`,
+        customerId: original.customerId,
+        leadId: original.leadId ?? undefined,
+        pax: original.pax,
+        paxAdult: original.paxAdult,
+        paxChild: original.paxChild,
         travelDateFrom: original.travelDateFrom ?? undefined,
-        travelDateTo:   original.travelDateTo   ?? undefined,
-        duration:       original.duration        ?? undefined,
-        destination:    original.destination     ?? undefined,
-        tourType:       original.tourType        ?? undefined,
-        subtotal:       original.subtotal,
+        travelDateTo: original.travelDateTo ?? undefined,
+        duration: original.duration ?? undefined,
+        destination: original.destination ?? undefined,
+        tourType: original.tourType ?? undefined,
+        subtotal: original.subtotal,
         discountAmount: original.discountAmount,
-        discountPct:    original.discountPct,
-        taxAmount:      original.taxAmount,
-        taxPct:         original.taxPct,
-        totalAmount:    original.totalAmount,
-        totalCost:      original.totalCost,
-        profitAmount:   original.profitAmount,
-        profitMargin:   original.profitMargin,
-        currency:       original.currency,
-        notes:          original.notes          ?? undefined,
-        internalNotes:  original.internalNotes  ?? undefined,
-        status:         'DRAFT',
+        discountPct: original.discountPct,
+        taxAmount: original.taxAmount,
+        taxPct: original.taxPct,
+        totalAmount: original.totalAmount,
+        totalCost: original.totalCost,
+        profitAmount: original.profitAmount,
+        profitMargin: original.profitMargin,
+        currency: original.currency,
+        notes: original.notes ?? undefined,
+        internalNotes: original.internalNotes ?? undefined,
+        status: 'DRAFT',
         items: {
           create: (original.items as any[]).map((item: any) => ({
-            day:          item.day,
-            sortOrder:    item.sortOrder,
-            category:     item.category,
-            name:         item.name,
-            description:  item.description,
-            resourceId:   item.resourceId,
-            quantity:     item.quantity,
-            unit:         item.unit,
+            day: item.day,
+            sortOrder: item.sortOrder,
+            category: item.category,
+            name: item.name,
+            description: item.description,
+            resourceId: item.resourceId,
+            quantity: item.quantity,
+            unit: item.unit,
             sellingPrice: item.sellingPrice,
-            buyingPrice:  item.buyingPrice,
-            markup:       item.markup,
+            buyingPrice: item.buyingPrice,
+            markup: item.markup,
             totalSelling: item.totalSelling,
-            totalCost:    item.totalCost,
-            currency:     item.currency,
-            date:         item.date,
-            startTime:    item.startTime,
-            endTime:      item.endTime,
-            notes:        item.notes,
-            isOptional:   item.isOptional,
-            isIncluded:   item.isIncluded,
+            totalCost: item.totalCost,
+            currency: item.currency,
+            date: item.date,
+            startTime: item.startTime,
+            endTime: item.endTime,
+            notes: item.notes,
+            isOptional: item.isOptional,
+            isIncluded: item.isIncluded,
           })),
         },
       },
       include: {
-        items:    { orderBy: [{ day: 'asc' }, { sortOrder: 'asc' }] },
-        customer: { select: { id: true, firstName: true, lastName: true, companyName: true, type: true } },
+        items: { orderBy: [{ day: 'asc' }, { sortOrder: 'asc' }] },
+        customer: {
+          select: { id: true, firstName: true, lastName: true, companyName: true, type: true },
+        },
       },
     });
   }
@@ -418,15 +564,15 @@ export class QuotationsService {
   async getStats(organizationId: string) {
     const [byStatus, totalValue] = await Promise.all([
       this.prisma.quotation.groupBy({
-        by:    ['status'],
+        by: ['status'],
         where: { organizationId },
         _count: { _all: true },
-        _sum:   { totalAmount: true },
+        _sum: { totalAmount: true },
       }),
       this.prisma.quotation.aggregate({
         where: { organizationId, status: 'APPROVED' as any },
-        _sum:  { totalAmount: true, profitAmount: true },
-        _avg:  { profitMargin: true },
+        _sum: { totalAmount: true, profitAmount: true },
+        _avg: { profitMargin: true },
       }),
     ]);
     return { byStatus, approvedSummary: totalValue };

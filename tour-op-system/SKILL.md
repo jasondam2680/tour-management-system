@@ -9,7 +9,7 @@ description: >
   a travel operations platform. Also triggers when the user asks about specific sub-systems:
   leads, quotes, bookings, payments, itineraries, documents, analytics, or PDF generation
   in the context of a travel business application.
-compatibility: "claude.ai, Claude Desktop, Claude Code, Cowork"
+compatibility: "opencode.ai, codegpt, bigmodels, copilot, codeium"
 stack: "NestJS · TypeScript · Prisma · PostgreSQL · React · Vite · TanStack Query · Zustand · Tailwind CSS · pdfmake · MinIO · Docker"
 license: Proprietary
 ---

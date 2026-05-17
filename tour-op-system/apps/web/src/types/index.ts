@@ -2,8 +2,16 @@ export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'SALES' | 'OP' | 'FINANCE' | 'G
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 export type CustomerType = 'B2B' | 'B2C';
 export type SupplierCategory =
-  | 'HOTEL' | 'RESORT' | 'RESTAURANT' | 'TRANSPORT'
-  | 'BOAT' | 'GUIDE' | 'ATTRACTION' | 'VISA' | 'INSURANCE' | 'OTHER';
+  | 'HOTEL'
+  | 'RESORT'
+  | 'RESTAURANT'
+  | 'TRANSPORT'
+  | 'BOAT'
+  | 'GUIDE'
+  | 'ATTRACTION'
+  | 'VISA'
+  | 'INSURANCE'
+  | 'OTHER';
 export type Currency = 'VND' | 'USD' | 'EUR' | 'CNY' | 'THB' | 'SGD' | 'JPY' | 'KRW' | 'AUD';
 export type TourStatus = 'PLANNING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 export type BookingStatus = 'DRAFT' | 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
@@ -82,14 +90,27 @@ export interface Supplier {
 }
 
 export type LeadStatus =
-  | 'NEW' | 'CONTACTED' | 'QUALIFIED'
-  | 'PROPOSAL_SENT' | 'NEGOTIATING'
-  | 'WON' | 'LOST' | 'ABANDONED';
+  | 'NEW'
+  | 'CONTACTED'
+  | 'QUALIFIED'
+  | 'PROPOSAL_SENT'
+  | 'NEGOTIATING'
+  | 'WON'
+  | 'LOST'
+  | 'ABANDONED';
 
 export type LeadPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 export type QuotationStatus =
-  | 'DRAFT' | 'SENT' | 'VIEWED' | 'NEGOTIATING'
-  | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'CONVERTED';
+  | 'DRAFT'
+  | 'SENT'
+  | 'VIEWED'
+  | 'NEGOTIATING'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'EXPIRED'
+  | 'CONVERTED';
+
+export type TourQuotationType = 'GROUP' | 'PRIVATE';
 
 export interface LeadActivity {
   id: string;
@@ -163,6 +184,8 @@ export interface Quotation {
   duration?: number;
   destination?: string;
   tourType?: string;
+  tourQuotationType?: TourQuotationType;
+  groupTourTemplateId?: string;
   subtotal: number;
   discountAmount: number;
   discountPct: number;
@@ -180,7 +203,24 @@ export interface Quotation {
   createdAt: string;
   customer?: Pick<Customer, 'id' | 'firstName' | 'lastName' | 'companyName' | 'type'>;
   items?: QuotationItem[];
+  itineraryVersion?: ItineraryVersion;
   _count?: { items: number };
+}
+
+export interface GroupTourTemplate {
+  id: string;
+  code: string;
+  templateName: string;
+  title: string;
+  duration: number;
+  minPax?: number;
+  packagePrice?: number;
+  packagePriceCurrency?: Currency;
+  overview?: string;
+  packageIncludes?: any;
+  isActive: boolean;
+  createdAt: string;
+  currentVersion?: ItineraryVersion;
 }
 
 export interface PaginatedResult<T> {

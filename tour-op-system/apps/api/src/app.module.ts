@@ -5,13 +5,14 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import configuration from './config/configuration';
 import { AuthModule } from './modules/auth/auth.module';
 import { CustomersModule } from './modules/customers/customers.module';
-import { ToursModule }    from './modules/tours/tours.module';
+import { ToursModule } from './modules/tours/tours.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
-import { FinanceModule }  from './modules/finance/finance.module';
+import { FinanceModule } from './modules/finance/finance.module';
 import { SuppliersModule } from './modules/suppliers/suppliers.module';
 import { LeadsModule } from './modules/leads/leads.module';
 import { QuotationsModule } from './modules/quotations/quotations.module';
 import { ItinerariesModule } from './modules/itineraries/itineraries.module';
+import { GroupToursModule } from './modules/group-tours/group-tours.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
@@ -27,16 +28,17 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     LeadsModule,
     QuotationsModule,
     ItinerariesModule,
+    GroupToursModule,
     ToursModule,
     BookingsModule,
     FinanceModule,
   ],
   providers: [
-    { provide: APP_GUARD,       useClass: ThrottlerGuard },
-    { provide: APP_GUARD,       useClass: JwtAuthGuard },
-    { provide: APP_GUARD,       useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
-    { provide: APP_FILTER,      useClass: AllExceptionsFilter },
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
   ],
 })
 export class AppModule {}
