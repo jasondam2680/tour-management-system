@@ -148,3 +148,42 @@ For detailed progress tracking, see [PROGRESS.md](PROGRESS.md)
 - **Overall Completion**: 65%
 - **Phase 1-3**: 100% complete
 - **Phase 4**: 40% complete (in progress)
+
+## Codespaces / Devcontainer
+
+This repository includes a `.devcontainer` configuration to run the project in GitHub Codespaces or a local Docker-based development container.
+
+- Start the container locally with Docker Compose (runs a workspace container + Postgres):
+
+```bash
+cd .devcontainer
+docker compose up -d --build
+```
+
+- Inside the container or Codespace the `postCreateCommand` installs dependencies and runs `prisma generate` automatically.
+
+- Required environment variables (set in Codespaces Secrets or `.env` locally):
+  - `DATABASE_URL` — Postgres connection string, e.g. for local dev `postgres://dev:dev@localhost:5432/devdb`, or for Codespaces/devcontainer `postgres://dev:dev@db:5432/devdb`
+  - `JWT_SECRET` — app JWT signing secret
+  - `NEXT_PUBLIC_API_URL` — public API base URL for the web app (optional for local)
+
+- Add secrets for Codespaces: GitHub → Repository → Settings → Secrets and variables → Codespaces secrets. Do NOT commit `.env` files.
+
+- Forwarded ports (configured in the devcontainer): `3000` (API), `3001` (Web), `5432` (Postgres).
+
+- Running apps inside the codespace / container:
+
+```bash
+# API
+cd apps/api
+npm run dev
+
+# Web
+cd apps/web
+npm run dev
+```
+
+- Troubleshooting tips:
+  - If Prisma reports missing client, run `npx prisma generate` in `apps/api`.
+  - If DB connection fails, ensure `DATABASE_URL` points to the running Postgres container at `db`.
+  - Confirm ports are forwarded in Codespaces if you can't reach the apps from the browser.
