@@ -1,6 +1,4 @@
-import {
-  Controller, Get, Post, Patch, Body, Param, Query, UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -53,43 +51,47 @@ export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 
   @Get('stats')
-  @ApiOperation({ summary: 'Thống kê bookings' })
+  @ApiOperation({ summary: 'Booking Statistics' })
   getStats(@CurrentUser() user: any) {
     return this.bookingsService.getStats(user.organizationId);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Danh sách bookings' })
+  @ApiOperation({ summary: 'Booking List' })
   findAll(@CurrentUser() user: any, @Query() query: QueryBookingDto) {
     return this.bookingsService.findAll(user.organizationId, query);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Chi tiết booking' })
+  @ApiOperation({ summary: 'Booking Details' })
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
     return this.bookingsService.findOne(id, user.organizationId);
   }
 
   @Post()
-  @ApiOperation({ summary: 'Tạo booking mới cho tour' })
+  @ApiOperation({ summary: 'Create New Booking for Tour' })
   create(@CurrentUser() user: any, @Body() dto: CreateBookingDto) {
     return this.bookingsService.create(user.organizationId, dto);
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Cập nhật booking' })
+  @ApiOperation({ summary: 'Update Booking' })
   update(@Param('id') id: string, @CurrentUser() user: any, @Body() dto: UpdateBookingDto) {
     return this.bookingsService.update(id, user.organizationId, dto);
   }
 
   @Patch(':id/status')
-  @ApiOperation({ summary: 'Đổi trạng thái booking' })
-  changeStatus(@Param('id') id: string, @CurrentUser() user: any, @Body() dto: ChangeBookingStatusDto) {
+  @ApiOperation({ summary: 'Change Booking Status' })
+  changeStatus(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body() dto: ChangeBookingStatusDto,
+  ) {
     return this.bookingsService.changeStatus(id, user.organizationId, dto);
   }
 
   @Post(':id/payments')
-  @ApiOperation({ summary: 'Ghi nhận thanh toán cho nhà cung cấp' })
+  @ApiOperation({ summary: 'Record Payment for Supplier' })
   addPayment(@Param('id') id: string, @CurrentUser() user: any, @Body() dto: AddPaymentDto) {
     return this.bookingsService.addPayment(id, user.organizationId, dto);
   }

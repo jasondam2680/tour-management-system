@@ -4,11 +4,11 @@ Enterprise-grade Tour Operator Management System — Phase 1-3
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
+| Layer    | Technology                                    |
+| -------- | --------------------------------------------- |
 | Frontend | Next.js 15, TypeScript, Tailwind CSS, Zustand |
-| Backend | NestJS, TypeScript, Prisma 7, PostgreSQL |
-| Infra | Docker, Redis, pgAdmin |
+| Backend  | NestJS, TypeScript, Prisma 7, PostgreSQL      |
+| Infra    | Docker, Redis, pgAdmin                        |
 
 ## Prerequisites
 
@@ -69,22 +69,22 @@ npm run dev
 
 ## Access
 
-| Service | URL |
-|---------|-----|
-| Frontend | http://localhost:3000 |
-| API | http://localhost:3001/api/v1 |
-| Swagger | http://localhost:3001/api/docs |
-| pgAdmin | http://localhost:5050 |
+| Service  | URL                            |
+| -------- | ------------------------------ |
+| Frontend | http://localhost:3000          |
+| API      | http://localhost:3001/api/v1   |
+| Swagger  | http://localhost:3001/api/docs |
+| pgAdmin  | http://localhost:5050          |
 
 ## Demo Accounts
 
-| Role | Email | Password |
-|------|-------|----------|
-| Super Admin | admin@demotourop.com | Admin@123456 |
-| Sales | sales@demotourop.com | Password@123 |
-| OP | op@demotourop.com | Password@123 |
-| Finance | finance@demotourop.com | Password@123 |
-| Guide | guide@demotourop.com | Password@123 |
+| Role        | Email                  | Password     |
+| ----------- | ---------------------- | ------------ |
+| Super Admin | admin@demotourop.com   | Admin@123456 |
+| Sales       | sales@demotourop.com   | Password@123 |
+| OP          | op@demotourop.com      | Password@123 |
+| Finance     | finance@demotourop.com | Password@123 |
+| Guide       | guide@demotourop.com   | Password@123 |
 
 ## API Modules (Phase 1-3)
 
@@ -139,4 +139,12 @@ tour-op-system/
 - ✅ Phase 1 — Foundation (Monorepo, Docker, NestJS, Prisma, Auth, RBAC)
 - ✅ Phase 2 — Customers + Suppliers + Frontend shell
 - ✅ Phase 3 — Leads CRM + Quotation Builder
-- 🔜 Phase 4 — Tours + Bookings + Finance (AR/AP)
+- ⚠️ Phase 4 — Tours + Bookings + Finance (AR/AP) - 40% complete
+
+## Project Status
+
+For detailed progress tracking, see [PROGRESS.md](PROGRESS.md)
+
+- **Overall Completion**: 65%
+- **Phase 1-3**: 100% complete
+- **Phase 4**: 40% complete (in progress)

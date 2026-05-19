@@ -13,10 +13,14 @@ import { LeadsModule } from './modules/leads/leads.module';
 import { QuotationsModule } from './modules/quotations/quotations.module';
 import { ItinerariesModule } from './modules/itineraries/itineraries.module';
 import { GroupToursModule } from './modules/group-tours/group-tours.module';
+import { InvoicesModule } from './modules/invoices/invoices.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { ScheduleModule } from '@nestjs/schedule';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+
 
 @Module({
   imports: [
@@ -32,6 +36,9 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     ToursModule,
     BookingsModule,
     FinanceModule,
+    InvoicesModule,
+    ScheduleModule.forRoot(),
+    EventEmitterModule.forRoot(),
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

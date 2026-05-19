@@ -148,10 +148,10 @@ export class ToursService {
     };
 
     if (!validTransitions[tour.status].includes(status)) {
-      throw new BadRequestException(`Không thể chuyển trạng thái từ ${tour.status} sang ${status}`);
+      throw new BadRequestException(`Cannot change status from ${tour.status} to ${status}`);
     }
     if (status === TourStatus.CANCELLED && !reason) {
-      throw new BadRequestException('Cần nhập lý do khi huỷ tour');
+      throw new BadRequestException('Reason required when cancelling tour');
     }
 
     const timestamps: any = {};

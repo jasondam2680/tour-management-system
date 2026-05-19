@@ -5,11 +5,11 @@ import Link from 'next/link';
 import { bookingsApi, Booking, BookingStatus, BookingStats } from '@/lib/api/bookings';
 
 const STATUS_LABEL: Record<BookingStatus, string> = {
-  DRAFT: 'Nháp',
-  PENDING: 'Chờ xác nhận',
-  CONFIRMED: 'Đã xác nhận',
-  COMPLETED: 'Hoàn thành',
-  CANCELLED: 'Đã huỷ',
+  DRAFT: 'Draft',
+  PENDING: 'Pending',
+  CONFIRMED: 'Confirmed',
+  COMPLETED: 'Completed',
+  CANCELLED: 'Cancelled',
 };
 const STATUS_COLOR: Record<BookingStatus, string> = {
   DRAFT: 'bg-gray-100 text-gray-600',
@@ -79,10 +79,8 @@ export default function BookingsPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Bookings dịch vụ</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Lệnh đặt dịch vụ từ nhà cung cấp cho các tour
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">Service Bookings</h1>
+          <p className="text-sm text-gray-500 mt-1">Service orders from suppliers for tours</p>
         </div>
       </div>
 
@@ -113,7 +111,7 @@ export default function BookingsPage() {
       <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-wrap gap-3 items-center">
         <input
           type="text"
-          placeholder="Tìm booking, mã..."
+          placeholder="Find booking, code..."
           className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-blue-500"
           onChange={(e) =>
             setQuery((q) => ({ ...q, search: e.target.value || undefined, page: 1 }))
@@ -125,7 +123,7 @@ export default function BookingsPage() {
             setQuery((q) => ({ ...q, status: e.target.value || undefined, page: 1 }))
           }
         >
-          <option value="">Tất cả trạng thái</option>
+          <option value="">All statuses</option>
           {(Object.keys(STATUS_LABEL) as BookingStatus[]).map((s) => (
             <option key={s} value={s}>
               {STATUS_LABEL[s]}
@@ -137,10 +135,10 @@ export default function BookingsPage() {
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-gray-400">Đang tải...</div>
+          <div className="p-12 text-center text-gray-400">Loading...</div>
         ) : !bookings.length ? (
           <div className="p-12 text-center text-gray-400">
-            Chưa có booking nào. Tạo từ trang chi tiết Tour.
+            No bookings yet. Create from Tour detail page.
           </div>
         ) : (
           <table className="w-full text-sm">
@@ -149,11 +147,11 @@ export default function BookingsPage() {
                 {[
                   'Booking',
                   'Tour',
-                  'Nhà cung cấp',
-                  'Ngày DV',
-                  'Chi phí',
-                  'Thanh toán',
-                  'Trạng thái',
+                  'Supplier',
+                  'Service Date',
+                  'Cost',
+                  'Payment',
+                  'Status',
                   '',
                 ].map((h) => (
                   <th key={h} className="text-left px-4 py-3 font-medium text-gray-600">
@@ -234,7 +232,7 @@ export default function BookingsPage() {
             disabled={meta.page <= 1}
             className="px-3 py-1 rounded border border-gray-300 text-sm disabled:opacity-40 hover:bg-gray-50"
           >
-            ← Trước
+            ← Previous
           </button>
           <span className="text-sm text-gray-600">
             Trang {meta.page} / {meta.totalPages}
@@ -244,7 +242,7 @@ export default function BookingsPage() {
             disabled={meta.page >= meta.totalPages}
             className="px-3 py-1 rounded border border-gray-300 text-sm disabled:opacity-40 hover:bg-gray-50"
           >
-            Tiếp →
+            Next →
           </button>
         </div>
       )}

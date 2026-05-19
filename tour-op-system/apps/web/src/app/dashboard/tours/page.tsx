@@ -7,11 +7,11 @@ import { toursApi, QueryToursParams, TourStats } from '@/lib/api/tours';
 type TourStatus = 'PLANNING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
 const STATUS_LABEL: Record<TourStatus, string> = {
-  PLANNING: 'Đang lên kế hoạch',
-  CONFIRMED: 'Đã xác nhận',
-  IN_PROGRESS: 'Đang diễn ra',
-  COMPLETED: 'Hoàn thành',
-  CANCELLED: 'Đã huỷ',
+  PLANNING: 'Planning',
+  CONFIRMED: 'Confirmed',
+  IN_PROGRESS: 'In Progress',
+  COMPLETED: 'Completed',
+  CANCELLED: 'Cancelled',
 };
 
 const STATUS_COLOR: Record<TourStatus, string> = {
@@ -96,14 +96,14 @@ export default function ToursPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Quản lý Tours</h1>
-          <p className="text-sm text-gray-500 mt-1">Các đoàn / tour đang chạy và lên kế hoạch</p>
+          <h1 className="text-2xl font-bold text-gray-900">Manage Tours</h1>
+          <p className="text-sm text-gray-500 mt-1">Active and planned tours</p>
         </div>
         <Link
           href="/dashboard/tours/new"
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
         >
-          + Tạo Tour mới
+          + Create New Tour
         </Link>
       </div>
 
@@ -154,19 +154,19 @@ export default function ToursPage() {
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-gray-400">Đang tải...</div>
+          <div className="p-12 text-center text-gray-400">Loading...</div>
         ) : tours.length === 0 ? (
-          <div className="p-12 text-center text-gray-400">Chưa có tour nào</div>
+          <div className="p-12 text-center text-gray-400">No tours yet</div>
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Mã / Tên tour</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Khách hàng</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Ngày đi</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Khách</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Giá bán</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Trạng thái</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Code / Tour Name</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Customer</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Travel Date</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Guests</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Selling Price</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Bookings</th>
                 <th className="px-4 py-3"></th>
               </tr>
@@ -220,7 +220,7 @@ export default function ToursPage() {
             disabled={meta.page <= 1}
             className="px-3 py-1 rounded border border-gray-300 text-sm disabled:opacity-40 hover:bg-gray-50"
           >
-            ← Trước
+            ← Previous
           </button>
           <span className="text-sm text-gray-600">
             Trang {meta.page} / {meta.totalPages}
@@ -230,7 +230,7 @@ export default function ToursPage() {
             disabled={meta.page >= meta.totalPages}
             className="px-3 py-1 rounded border border-gray-300 text-sm disabled:opacity-40 hover:bg-gray-50"
           >
-            Tiếp →
+            Next →
           </button>
         </div>
       )}

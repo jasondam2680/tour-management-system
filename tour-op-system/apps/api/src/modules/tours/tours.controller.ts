@@ -28,37 +28,37 @@ export class ToursController {
   constructor(private readonly toursService: ToursService) {}
 
   @Get('stats')
-  @ApiOperation({ summary: 'Thống kê tours' })
+  @ApiOperation({ summary: 'Tour Statistics' })
   getStats(@CurrentUser() user: any) {
     return this.toursService.getStats(user.organizationId);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Danh sách tours' })
+  @ApiOperation({ summary: 'Tour List' })
   findAll(@CurrentUser() user: any, @Query() query: QueryTourDto) {
     return this.toursService.findAll(user.organizationId, query);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Chi tiết tour' })
+  @ApiOperation({ summary: 'Tour Details' })
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
     return this.toursService.findOne(id, user.organizationId);
   }
 
   @Post()
-  @ApiOperation({ summary: 'Tạo tour mới' })
+  @ApiOperation({ summary: 'Create New Tour' })
   create(@CurrentUser() user: any, @Body() dto: CreateTourDto) {
     return this.toursService.create(user.organizationId, dto);
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Cập nhật tour' })
+  @ApiOperation({ summary: 'Update Tour' })
   update(@Param('id') id: string, @CurrentUser() user: any, @Body() dto: UpdateTourDto) {
     return this.toursService.update(id, user.organizationId, dto);
   }
 
   @Patch(':id/status')
-  @ApiOperation({ summary: 'Đổi trạng thái tour' })
+  @ApiOperation({ summary: 'Change Tour Status' })
   changeStatus(
     @Param('id') id: string,
     @CurrentUser() user: any,
@@ -68,7 +68,7 @@ export class ToursController {
   }
 
   @Post(':id/assignments')
-  @ApiOperation({ summary: 'Phân công hướng dẫn viên / tài xế' })
+  @ApiOperation({ summary: 'Assign Guide/Driver' })
   addAssignment(
     @Param('id') tourId: string,
     @CurrentUser() user: any,
@@ -78,7 +78,7 @@ export class ToursController {
   }
 
   @Delete(':id/assignments/:assignmentId')
-  @ApiOperation({ summary: 'Xoá phân công' })
+  @ApiOperation({ summary: 'Remove Assignment' })
   removeAssignment(
     @Param('id') tourId: string,
     @Param('assignmentId') assignmentId: string,
@@ -88,13 +88,13 @@ export class ToursController {
   }
 
   @Post(':id/incidents')
-  @ApiOperation({ summary: 'Ghi nhận sự cố trong tour' })
+  @ApiOperation({ summary: 'Record Incident in Tour' })
   addIncident(@Param('id') tourId: string, @CurrentUser() user: any, @Body() dto: AddIncidentDto) {
     return this.toursService.addIncident(tourId, user.organizationId, dto);
   }
 
   @Post('convert-from-quotation/:quotationId')
-  @ApiOperation({ summary: 'Chuyển báo giá đã duyệt thành Tour + Bookings tự động' })
+  @ApiOperation({ summary: 'Convert Approved Quotation to Tour + Bookings Automatically' })
   convertFromQuotation(@Param('quotationId') quotationId: string, @CurrentUser() user: any) {
     return this.toursService.convertFromQuotation(quotationId, user.organizationId);
   }

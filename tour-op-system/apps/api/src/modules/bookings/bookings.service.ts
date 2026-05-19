@@ -6,6 +6,7 @@ import { UpdateBookingDto } from './dto/update-booking.dto';
 import { QueryBookingDto } from './dto/query-booking.dto';
 import { ChangeBookingStatusDto } from './dto/change-status.dto';
 
+
 @Injectable()
 export class BookingsService {
   constructor(private prisma: PrismaService) {}
@@ -72,7 +73,7 @@ export class BookingsService {
   async create(organizationId: string, dto: CreateBookingDto) {
     const tour = await this.prisma.tour.findFirst({ where: { id: dto.tourId, organizationId } });
     if (!tour) throw new NotFoundException('Tour not found');
-
+            
     const code = await this.generateCode(organizationId);
     const quantity = dto.quantity ?? 1;
     const unitCost = dto.unitCost ?? 0;
@@ -117,6 +118,7 @@ export class BookingsService {
     });
   }
 
+     
   async update(id: string, organizationId: string, dto: UpdateBookingDto) {
     const booking = await this.findOne(id, organizationId);
     if (booking.status === BookingStatus.CANCELLED)
@@ -240,3 +242,5 @@ export class BookingsService {
     return `BOK-${year}-${String(count + 1).padStart(4, '0')}`;
   }
 }
+
+  

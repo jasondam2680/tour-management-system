@@ -121,6 +121,27 @@ enum IncidentSeverity {
   CRITICAL
 }
 
+enum DocumentType {
+  CONTRACT
+  INVOICE
+  RECEIPT
+  ITINERARY
+  PERMIT
+  INSURANCE
+  PASSPORT
+  VISA
+  OTHER
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  CASH
+  CREDIT_CARD
+  PAYPAL
+  CRYPTO
+  OTHER
+}
+
 model Organization {
   id          String   @id @default(cuid())
   name        String
@@ -570,6 +591,10 @@ model Tour {
 
   @@index([organizationId])
   @@index([status])
+  @@index([customerId])
+  @@index([travelDateFrom, travelDateTo])
+  @@index([status, travelDateFrom])
+  @@index([createdAt])
   @@map("tours")
 }
 
@@ -661,6 +686,10 @@ model Booking {
 
   @@index([tourId])
   @@index([supplierId])
+  @@index([tourId, serviceDate])
+  @@index([supplierId, serviceDate])
+  @@index([paymentStatus, paymentDeadline])
+  @@index([createdAt])
   @@map("bookings")
 }
 
@@ -729,6 +758,10 @@ model Invoice {
 
   @@index([customerId])
   @@index([tourId])
+  @@index([customerId, dueDate])
+  @@index([tourId, issuedAt])
+  @@index([status, dueDate])
+  @@index([createdAt])
   @@map("invoices")
 }
 
