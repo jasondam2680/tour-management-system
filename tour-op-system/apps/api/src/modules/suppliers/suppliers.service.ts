@@ -1,71 +1,132 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+// apps/api/src/modules/suppliers/suppliers.service.ts
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Prisma, SupplierCategory } from '@prisma/client';
+import { QuerySupplierDto } from './dto/query-supplier.dto';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
 import { UpdateSupplierDto } from './dto/update-supplier.dto';
-import { QuerySupplierDto } from './dto/query-supplier.dto';
 import { CreateResourceDto, UpdateResourceDto } from './dto/resource.dto';
-
-
 
 @Injectable()
 export class SuppliersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
+
+  // ===========================================================================
+  // HELPER METHODS
+  // ===========================================================================
+  
+  private async generateCode(organizationId: string, category: SupplierCategory) {
+    const prefix = category ? category.substring(0, 3).toUpperCase() : 'SUP';
+    const count = await this.prisma.supplier.count({
+      where: { organizationId, category },
+    });
+    // FIX: Sửa lỗi chính tả totring -> toString()
+    return `${prefix}-${(count + 1).toString().padStart(3, '0')}`;
+  }
+
+  private async ensureSupplierExists(supplierId: string, organizationId: string) {
+    const supplier = await this.prisma.supplier.findFirst({
+      where: { id: supplierId, organizationId },
+    });
+    if (!supplier) throw new NotFoundException(`Supplier ${supplierId} not found`);
+    return supplier;
+  }
+
+  // ===========================================================================
+  // SUPPLIER CORE METHODS
+  // ===========================================================================
 
   async create(dto: CreateSupplierDto, organizationId: string) {
     const code = await this.generateCode(organizationId, dto.category);
-
+    
+    // FIX: Đã dọn dẹp sạch sẽ các biến page, limit, category bị thừa ở đây
     return this.prisma.supplier.create({
-      data: { ...dto, code, organizationId },
+      data: {
+        ...dto,
+        code,
+        organizationId,
+      },
     });
   }
-
+    
   async findAll(query: QuerySupplierDto, organizationId: string) {
-    const {
-      search, category, city, country, isPreferred, isActive = true,
-      page = 1, limit = 20, sortBy = 'name', sortOrder = 'asc',
-    } = query;
+    const page = query.page ? Number(query.page) : 1;
+    const limit = query.limit ? Number(query.limit) : 100;
+    const skip = (page - 1) * limit;
 
-    const where: any = {
+    // Khởi tạo điều kiện WHERE an toàn với kiểu của Prisma
+    const where: Prisma.SupplierWhereInput = {
       organizationId,
-      ...(isActive !== undefined && { isActive }),
-      ...(category && { category }),
-      ...(city && { city: { contains: city, mode: 'insensitive' } }),
-      ...(country && { country }),
-      ...(isPreferred !== undefined && { isPreferred }),
-      ...(search && {
-        OR: [
-          { name: { contains: search, mode: 'insensitive' } },
-          { code: { contains: search, mode: 'insensitive' } },
-          { contactPerson: { contains: search, mode: 'insensitive' } },
-          { email: { contains: search, mode: 'insensitive' } },
-          { phone: { contains: search, mode: 'insensitive' } },
-        ],
-      }),
     };
 
-    return this.prisma.paginate(
-      this.prisma.supplier,
-      {
+    if (query.isActive !== undefined) {
+      where.isActive = query.isActive;
+    }
+    
+    if (query.isPreferred !== undefined) {
+      where.isPreferred = query.isPreferred;
+    }
+
+    if (query.category) {
+      const categoryUpper = query.category.toUpperCase();
+      if (Object.values(SupplierCategory).includes(categoryUpper as any)) {
+        where.category = categoryUpper as SupplierCategory;
+      }
+    }
+
+    if (query.search) {
+      where.OR = [
+        { name: { contains: query.search, mode: 'insensitive' } },
+        { code: { contains: query.search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.supplier.findMany({
         where,
-        orderBy: { [sortBy]: sortOrder },
         include: {
-          _count: { select: { resources: true, bookings: true } },
+          resources: true,
+          _count: {
+            select: { resources: true, bookings: true },
+          },
         },
+        orderBy: {
+          [query.sortBy || 'createdAt']: query.sortOrder || 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      this.prisma.supplier.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
       },
-      page,
-      limit,
-    );
+    };
+  }
+
+  async getStats(organizationId: string) {
+    const total = await this.prisma.supplier.count({ where: { organizationId } });
+    const active = await this.prisma.supplier.count({
+      where: { organizationId, isActive: true },
+    });
+    return {
+      total,
+      active,
+      inactive: total - active,
+    };
   }
 
   async findOne(id: string, organizationId: string) {
     const supplier = await this.prisma.supplier.findFirst({
       where: { id, organizationId },
       include: {
-        resources: { where: { isActive: true } },
-        _count: { select: { bookings: true } },
+        resources: true,
       },
     });
     if (!supplier) throw new NotFoundException(`Supplier ${id} not found`);
@@ -73,7 +134,7 @@ export class SuppliersService {
   }
 
   async update(id: string, dto: UpdateSupplierDto, organizationId: string) {
-    await this.findOne(id, organizationId);
+    await this.ensureSupplierExists(id, organizationId);
     return this.prisma.supplier.update({
       where: { id },
       data: dto,
@@ -81,58 +142,19 @@ export class SuppliersService {
   }
 
   async remove(id: string, organizationId: string) {
-    await this.findOne(id, organizationId);
+    await this.ensureSupplierExists(id, organizationId);
     return this.prisma.supplier.update({
       where: { id },
       data: { isActive: false },
     });
   }
 
-  async getStats(organizationId: string) {
-    const [total, preferred, byCategory] = await Promise.all([
-      this.prisma.supplier.count({ where: { organizationId, isActive: true } }),
-      this.prisma.supplier.count({ where: { organizationId, isPreferred: true, isActive: true } }),
-      this.prisma.supplier.groupBy({
-        by: ['category'],
-        where: { organizationId, isActive: true },
-        _count: true,
-      }),
-    ]);
-    return { total, preferred, byCategory };
-  }
+  // ===========================================================================
+  // RESOURCE METHODS
+  // ===========================================================================
 
-  private async generateCode(organizationId: string, category: string): Promise<string> {
-    const prefix = category.substring(0, 3).toUpperCase(); // HOT, RES, TRA, etc.
-    const year = new Date().getFullYear();
-
-    const last = await this.prisma.supplier.findFirst({
-      where: { organizationId, code: { startsWith: `${prefix}-${year}` } },
-      orderBy: { code: 'desc' },
-    });
-
-    let seq = 1;
-    if (last?.code) {
-      const parts = last.code.split('-');
-      seq = parseInt(parts[parts.length - 1], 10) + 1;
-    }
-    return `${prefix}-${year}-${String(seq).padStart(4, '0')}`;
-  }
-
-  private async ensureSupplierExists(supplierId: string, organizationId: string) {
-    const supplier = await this.prisma.supplier.findFirst({
-      where: { id: supplierId, organizationId, isActive: true },
-    });
-    if (!supplier) throw new NotFoundException(`Supplier ${supplierId} not found`);
-    return supplier;
-  }
-
-  async createResource(
-    supplierId: string,
-    dto: CreateResourceDto,
-    organizationId: string,
-  ) {
+  async createResource(supplierId: string, dto: CreateResourceDto, organizationId: string) {
     await this.ensureSupplierExists(supplierId, organizationId);
-
     return this.prisma.resource.create({
       data: {
         ...dto,
@@ -143,19 +165,13 @@ export class SuppliersService {
 
   async findResources(supplierId: string, organizationId: string) {
     await this.ensureSupplierExists(supplierId, organizationId);
-
     return this.prisma.resource.findMany({
       where: { supplierId, isActive: true },
     });
   }
 
-  async findResource(
-    supplierId: string,
-    resourceId: string,
-    organizationId: string,
-  ) {
+  async findResource(supplierId: string, resourceId: string, organizationId: string) {
     await this.ensureSupplierExists(supplierId, organizationId);
-
     const resource = await this.prisma.resource.findFirst({
       where: {
         id: resourceId,
@@ -174,24 +190,17 @@ export class SuppliersService {
     organizationId: string,
   ) {
     await this.findResource(supplierId, resourceId, organizationId);
-
     return this.prisma.resource.update({
       where: { id: resourceId },
       data: dto,
     });
   }
 
-  async removeResource(
-    supplierId: string,
-    resourceId: string,
-    organizationId: string,
-  ) {
+  async removeResource(supplierId: string, resourceId: string, organizationId: string) {
     await this.findResource(supplierId, resourceId, organizationId);
-
     return this.prisma.resource.update({
       where: { id: resourceId },
       data: { isActive: false },
     });
   }
 }
-

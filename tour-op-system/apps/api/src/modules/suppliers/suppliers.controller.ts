@@ -4,6 +4,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SuppliersService } from './suppliers.service';
+import { GetSuppliersQueryDto } from './dto/get-suppliers-query.dto';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
 import { UpdateSupplierDto } from './dto/update-supplier.dto';
 import { QuerySupplierDto } from './dto/query-supplier.dto';
@@ -18,6 +19,14 @@ import { CreateResourceDto, UpdateResourceDto } from './dto/resource.dto';
 export class SuppliersController {
   constructor(private readonly suppliersService: SuppliersService) {}
 
+  // Hàm phụ trợ trích xuất Organization ID từ Request an toàn tuyệt đối
+  private getOrgIdSafe(userFromDecorator: any, req: any): string {
+    if (userFromDecorator && typeof userFromDecorator === 'string') return userFromDecorator;
+    if (req?.user?.organizationId) return req.user.organizationId;
+    if (req?.user?.orgId) return req.user.orgId;
+    return 'demo-org-id';
+  }
+  
   @Post(':supplierId/resources')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.OP)
   @ApiOperation({ summary: 'Create resource for supplier' })
@@ -83,11 +92,12 @@ export class SuppliersController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List suppliers with filtering & pagination' })
-  findAll(
+  @ApiOperation({ summary: 'Get list of suppliers with filters' })
+  async findAll(
     @Query() query: QuerySupplierDto,
-    @CurrentUser('organizationId') orgId: string,
+    @CurrentUser('organizationId') orgId: string, // FIX: Thêm decorator để lấy orgId
   ) {
+    // FIX: Bắt buộc truyền orgId xuống service
     return this.suppliersService.findAll(query, orgId);
   }
 

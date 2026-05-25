@@ -1,112 +1,116 @@
-## Assistant (Plan · GLM-4.5-Air · 320.3s)
+## Kế hoạch triển khai tích hợp Giai đoạn 4
 
+Dựa trên phân tích toàn diện các module của Giai đoạn 4 (Tours, Bookings, Finance), tôi đã xác định những khoảng trống đáng kể trong triển khai hiện tại. Sau đây là kế hoạch chi tiết để hoàn thiện việc tích hợp Giai đoạn 4.
+### Tổng quan trạng thái hiện tại
 
-Based on my comprehensive analysis of the Phase 4 modules (Tours, Bookings, Finance), I've identified significant gaps in the current implementation. Here's my detailed plan for completing Phase 4 integration:
+- **API Backend**: Hoàn thành 60% - còn thiếu logic nghiệp vụ quan trọng, tự động hóa và tích hợp 
+- **UI Frontend**: Hoàn thành 50% - còn thiếu form, workflow và các component nâng cao 
+- **Database Schema**: Hoàn thành 65% - còn thiếu entity, quan hệ và ràng buộc 
+- **Tổng thể**: 58% - cần nhiều công việc để sẵn sàng cho môi trường production 
 
-## 🎯 Phase 4 Integration Implementation Plan
+### Các tính năng quan trọng còn thiếu
 
-### **Current Status Overview**
-- **Backend API**: 60% complete - Missing critical business logic, automation, and integrations
-- **Frontend UI**: 50% complete - Missing forms, workflows, and advanced components
-- **Database Schema**: 65% complete - Missing entities, relationships, and constraints
-- **Overall Completion**: 58% - Requires significant work to be production-ready
+#### 1. Cải tiến schema cơ sở dữ liệu
 
-### **🚨 Critical Missing Features (Priority 1)**
-
-#### **1. Database Schema Enhancements**
 ```typescript
-// Missing entities to implement:
-- TourDocument (file management)
-- CustomerContact (relationship management)
+// Các entity còn thiếu cần triển khai:
+- TourDocument (quản lý tệp)
+- CustomerContact (quản lý mối quan hệ)
 - PaymentMethod enum
 - DocumentType enum
-- Enhanced indexes for performance
-- Business logic constraints
+- Tối ưu index cho hiệu năng
+- Ràng buộc logic nghiệp vụ
 ```
 
-#### **2. Core Business Logic Implementation**
+#### 2. Triển khai logic nghiệp vụ cốt lõi
+
 ```typescript
-// Critical workflows to implement:
-- Tour status automation based on dates
-- Booking conflict detection
-- Automatic invoice generation from tours
-- Financial calculations and aggregations
-- Commission tracking and payments
+// Các workflow quan trọng cần triển khai:
+- Tự động cập nhật trạng thái tour theo ngày tháng
+- Phát hiện xung đột booking
+- Tự động tạo hóa đơn từ tour
+- Tính toán và tổng hợp tài chính
+- Theo dõi hoa hồng và thanh toán
 ```
 
-#### **3. Missing API Endpoints**
+#### 3. Các API endpoint còn thiếu
+
 ```typescript
-// High-priority endpoints to add:
+// Các endpoint ưu tiên cao cần bổ sung:
 - Tours: /:id/documents, /:id/itinerary, /:id/payments
 - Bookings: /:id/inquiries, /:id/conflicts
 - Finance: /exchange-rates, /reports, /journal-entries
-- Bulk operations for all modules
+- Hỗ trợ thao tác hàng loạt cho tất cả module
 ```
 
-### **📋 Implementation Roadmap**
+## Lộ trình triển khai
 
-#### **Phase 4.1: Foundation & Core Integration (Weeks 1-2)**
-1. **Database Schema Updates**
-   - Implement missing entities (TourDocument, CustomerContact)
-   - Add missing enums and constraints
-   - Create performance indexes
-   - Implement soft delete support
+### Giai đoạn 4.1: Nền tảng và tích hợp cốt lõi (Tuần 1-2)
 
-2. **Backend API Enhancements**
-   - Complete missing CRUD operations
-   - Implement business logic for status transitions
-   - Add file upload/download endpoints
-   - Implement data validation across modules
+1. **Cập nhật schema cơ sở dữ liệu**
+   - Triển khai các entity còn thiếu (TourDocument, CustomerContact)
+   - Thêm các enum và ràng buộc còn thiếu
+   - Tạo index để tối ưu hiệu năng
+   - Triển khai hỗ trợ xóa mềm
 
-3. **Frontend Core Components**
-   - Implement edit forms for all entities
-   - Add bulk operations to list views
-   - Create advanced search/filter modals
-   - Implement proper form validation
+2. **Cải tiến API Backend**
+   - Hoàn thiện các CRUD còn thiếu
+   - Triển khai logic nghiệp vụ cho chuyển trạng thái
+   - Thêm endpoint tải lên/tải xuống tệp
+   - Triển khai xác thực dữ liệu xuyên suốt các module
 
-#### **Phase 4.2: Automation & Workflows (Weeks 3-4)**
-1. **Tour Automation**
-   - Implement automatic status transitions based on dates
-   - Add tour capacity management
-   - Implement tour cancellation with refund calculations
-   - Create tour document management system
+3. **Component cốt lõi phía Frontend**
+   - Triển khai form chỉnh sửa cho tất cả entity
+   - Thêm thao tác hàng loạt vào các danh sách
+   - Tạo modal tìm kiếm/lọc nâng cao
+   - Triển khai kiểm tra hợp lệ form đúng cách
 
-2. **Booking Automation**
-   - Implement booking conflict detection
-   - Add dynamic pricing rules
-   - Create booking modification workflows
-   - Implement supplier communication interfaces
+### Giai đoạn 4.2: Tự động hóa và workflow (Tuần 3-4)
 
-3. **Finance Automation**
-   - Implement automatic invoice generation
-   - Add payment scheduling and reminders
-   - Create financial reporting system
-   - Implement multi-currency support
+1. **Tự động hóa Tour**
+   - Triển khai tự động chuyển trạng thái theo ngày tháng
+   - Thêm quản lý sức chứa tour
+   - Triển khai hủy tour kèm tính toán hoàn tiền
+   - Tạo hệ thống quản lý tài liệu tour
 
-#### **Phase 4.3: Advanced Features & Integration (Weeks 5-6)**
-1. **Advanced Reporting & Analytics**
-   - Implement tour performance reports
-   - Add supplier performance metrics
-   - Create financial dashboards
-   - Implement data visualization components
+2. **Tự động hóa Booking**
+   - Triển khai phát hiện xung đột booking
+   - Thêm quy tắc định giá linh hoạt
+   - Tạo workflow chỉnh sửa booking
+   - Triển khai giao diện giao tiếp với nhà cung cấp
 
-2. **External Integrations**
-   - Implement payment gateway integration (Stripe, PayPal)
-   - Add email/SMS notification system
-   - Create document storage integration
-   - Implement calendar sync (Google Calendar, Outlook)
+3. **Tự động hóa Finance**
+   - Triển khai tự động tạo hóa đơn
+   - Thêm lịch thanh toán và nhắc nhở
+   - Tạo hệ thống báo cáo tài chính
+   - Triển khai hỗ trợ đa tiền tệ
 
-3. **Enhanced User Experience**
-   - Implement real-time updates with WebSockets
-   - Add mobile-responsive design
-   - Create notification system
-   - Implement advanced search and filtering
+### Giai đoạn 4.3: Tính năng nâng cao và tích hợp (Tuần 5-6)
 
-### **🔧 Technical Implementation Details**
+1. **Báo cáo và phân tích nâng cao**
+   - Triển khai báo cáo hiệu suất tour
+   - Thêm chỉ số hiệu suất nhà cung cấp
+   - Tạo dashboard tài chính
+   - Triển khai component trực quan hóa dữ liệu
 
-#### **Database Schema Updates**
+2. **Tích hợp bên ngoài**
+   - Tích hợp cổng thanh toán (Stripe, PayPal)
+   - Thêm hệ thống thông báo email/SMS
+   - Tạo tích hợp lưu trữ tài liệu
+   - Triển khai đồng bộ lịch (Google Calendar, Outlook)
+
+3. **Nâng cao trải nghiệm người dùng**
+   - Triển khai cập nhật thời gian thực với WebSockets
+   - Thêm thiết kế responsive cho di động
+   - Tạo hệ thống thông báo
+   - Triển khai tìm kiếm và lọc nâng cao
+
+## Chi tiết kỹ thuật triển khai
+
+### Cập nhật schema cơ sở dữ liệu
+
 ```prisma
-// Add missing entities
+// Thêm các entity còn thiếu
 model TourDocument {
   id         String   @id @default(cuid())
   tourId     String
@@ -133,9 +137,10 @@ model CustomerContact {
 }
 ```
 
-#### **Backend API Enhancements**
+### Cải tiến API Backend
+
 ```typescript
-// Add missing controllers
+// Thêm các controller còn thiếu
 @Controller('tours/:id/documents')
 export class TourDocumentsController {
   @Post()
@@ -148,90 +153,97 @@ export class TourDocumentsController {
   deleteDocument(@Param('id') tourId, @Param('documentId') documentId: string) { }
 }
 
-// Add automation services
+// Thêm service tự động hóa
 @Injectable()
 export class TourAutomationService {
-  @Cron('0 0 * * *') // Daily
+  @Cron('0 0 * * *') // Hằng ngày
   updateTourStatuses() { }
   
-  @Cron('0 9 * * *') // Daily at 9 AM
+  @Cron('0 9 * * *') // Mỗi ngày lúc 9 giờ sáng
   sendTourReminders() { }
 }
 ```
 
-#### **Frontend Component Enhancements**
+### Cải tiến component Frontend
+
 ```typescript
-// Add missing components
+// Thêm các component còn thiếu
 const TourCalendarView: React.FC = () => { }
 const BookingConflictDetector: React.FC = () => { }
 const FinancialDashboard: React.FC = () => { }
 const AdvancedSearchModal: React.FC = () => { }
 ```
 
-### **🎯 Success Criteria**
+## Tiêu chí thành công
 
-#### **Functional Requirements**
-- [ ] Complete CRUD operations for all entities
-- [ ] Automated status transitions and workflows
-- [ ] Financial calculations and reporting
-- [ ] File upload/download functionality
-- [ ] Bulk operations and batch processing
-- [ ] External integration capabilities
+### Yêu cầu chức năng
 
-#### **Performance Requirements**
-- [ ] API response time < 500ms for all endpoints
-- [ ] Database query optimization with proper indexing
-- [ ] Frontend load time < 3 seconds
-- [ ] Support for 1000+ concurrent users
+- [ ] Hoàn thiện CRUD cho tất cả entity
+- [ ] Tự động chuyển trạng thái và workflow
+- [ ] Tính toán và báo cáo tài chính
+- [ ] Chức năng tải lên/tải xuống tệp
+- [ ] Thao tác hàng loạt và xử lý theo lô
+- [ ] Khả năng tích hợp với hệ thống bên ngoài
 
-#### **User Experience Requirements**
-- [ ] Intuitive interface with minimal learning curve
-- [ ] Mobile-responsive design
-- [ ] Real-time updates and notifications
-- [ ] Comprehensive search and filtering
-- [ ] Export and reporting capabilities
+### Yêu cầu hiệu năng
 
-### **🚨 Risk Assessment & Mitigation**
+- [ ] Thời gian phản hồi API < 500ms cho tất cả endpoint
+- [ ] Tối ưu truy vấn database bằng index phù hợp
+- [ ] Thời gian tải frontend < 3 giây
+- [ ] Hỗ trợ 1000+ người dùng đồng thời
 
-#### **High Risk Items**
-1. **Data Migration**: Existing data needs validation and transformation
-   - *Mitigation*: Implement data validation scripts and migration tools
-2. **Performance**: Large datasets may cause performance issues
-   - *Mitigation*: Implement proper indexing and pagination
-3. **Integration**: External systems may have compatibility issues
-   - *Mitigation*: Use abstraction layers and fallback mechanisms
+### Yêu cầu trải nghiệm người dùng
 
-#### **Medium Risk Items**
-1. **User Adoption**: New workflows may require training
-   - *Mitigation*: Create comprehensive documentation and training materials
-2. **Security**: New features may introduce security vulnerabilities
-   - *Mitigation*: Implement security testing and code reviews
+- [ ] Giao diện trực quan, dễ học
+- [ ] Thiết kế responsive cho di động
+- [ ] Cập nhật và thông báo theo thời gian thực
+- [ ] Tìm kiếm và lọc toàn diện
+- [ ] Khả năng xuất dữ liệu và báo cáo
 
-### **📊 Implementation Metrics**
+## Đánh giá rủi ro và giảm thiểu
 
-#### **Success Metrics**
-- 95% code test coverage
-- 99.9% API uptime
-- < 100ms average API response time
-- 4.8/5 user satisfaction rating
-- 0 critical bugs in production
+### Rủi ro cao
 
-#### **Progress Tracking**
-- Daily standup meetings
-- Weekly sprint reviews
-- Bi-weekly demos with stakeholders
-- Monthly retrospectives for process improvement
+1. **Di chuyển dữ liệu**: Dữ liệu hiện có cần được kiểm tra và chuyển đổi  
+   - *Giảm thiểu*: Triển khai script xác thực dữ liệu và công cụ migration 
 
-### **🎉 Expected Outcomes**
+2. **Hiệu năng**: Dữ liệu lớn có thể gây ra vấn đề hiệu năng  
+   - *Giảm thiểu*: Triển khai index hợp lý và phân trang 
 
-Upon completion of Phase 4 integration, the system will provide:
+3. **Tích hợp**: Hệ thống bên ngoài có thể phát sinh vấn đề tương thích  
+   - *Giảm thiểu*: Dùng lớp trừu tượng và cơ chế dự phòng [ppl-ai-file-upload.s3.amazonaws]
+### Rủi ro trung bình
 
-1. **Complete Tour Management**: Automated workflows, document management, and financial tracking
-2. **Advanced Booking System**: Conflict detection, dynamic pricing, and supplier management
-3. **Comprehensive Finance Module**: Invoicing, payments, reporting, and multi-currency support
-4. **Seamless Integration**: Automated data flow between modules and external systems
-5. **Enhanced User Experience**: Intuitive interface, real-time updates, and comprehensive reporting
+1. **Khả năng tiếp nhận của người dùng**: Workflow mới có thể cần đào tạo  
+   - *Giảm thiểu*: Tạo tài liệu hướng dẫn đầy đủ và tài liệu đào tạo 
 
-This implementation plan addresses all identified gaps and provides a clear path to completing Phase 4 integration with a production-ready tour operation system.
+2. **Bảo mật**: Tính năng mới có thể tạo ra lỗ hổng bảo mật  
+   - *Giảm thiểu*: Triển khai kiểm thử bảo mật và review code
+## Chỉ số triển khai
 
----
+### Chỉ số thành công
+
+- Độ bao phủ kiểm thử code 95%
+- Uptime API 99.9% 
+- Thời gian phản hồi API trung bình < 100ms [p
+- Điểm hài lòng người dùng 4.8/5 
+- 0 lỗi nghiêm trọng trong production 
+### Theo dõi tiến độ
+
+- Họp standup hằng ngày 
+- Review sprint hằng tuần 
+- Demo hai tuần một lần với stakeholder 
+- Retro hằng tháng để cải thiện quy trình 
+
+## Kết quả kỳ vọng
+
+Sau khi hoàn tất tích hợp Giai đoạn 4, hệ thống sẽ cung cấp:
+
+1. **Quản lý Tour hoàn chỉnh**: Workflow tự động, quản lý tài liệu và theo dõi tài chính [ppl-ai-file-upload.s3.amazonaws](https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/attachments/105169220/e3f76f38-0d0c-4849-a34c-10ad8321650d/plan.md?AWSAccessKeyId=ASIA2F3EMEYEXFZ3R4LR&Signature=p1zAx4%2B1I3EzX9pKa1vOxA95%2B2Q%3D&x-amz-security-token=IQoJb3JpZ2luX2VjEDgaCXVzLWVhc3QtMSJIMEYCIQD57nuZbtG46JKG5B%2FXmfGf6%2Fl13S8VjiPXp3Vem0MylgIhAIuYBpl%2B%2FKsj%2BeGSXBFJ5fTYh1ix%2FSevJCratJkDYVPuKvMECAEQARoMNjk5NzUzMzA5NzA1IgzJUfuExzKJNgoQBXIq0ARG7dl4%2FKZIWZB1r0hRHfrIgGX62HrrzQHVU3syktXcdUkmEKw88SWQwSxAghHUC%2F%2FgRP22qM1ZFNpWNqhYpMg4TayoTTExuaNuEdwakR3tHsnzhLJzwpj4BUzPnsF6oplFg4QWsENmbhsLXs%2B6vWEOEarFcraZihUxKasznOYC8JpMbZ98izGf2YHQ%2FueRqw1j2txG5k9uMrrXE4fEWuRa9RJozpEG4Tsx3CUyqDkzsQlu2lLkRHQeek0Ga5w1h0NjWsHbPThrZkKs9iQC4M6Ixa6grvYSmZVfHkHhJabQmbQWtxlqN6QF%2BSDdJUvpXNZjqActufWuMu7GDJDiVmh2szA%2BnYaRD8uArx8tv5vLPeiFGF4tV8Pjd0WCpNegolgwEIjjpGDyBAAplm7QvEmphG2TVmjtuDLZWRGThUo76oTrzr%2B0oD0uV9PetBP9Uin1zlNXuv9QjvxDNbyQo4g0NH7MxwpTbCGavV6NFXadWUmHkrdXgEAaCZstKfITilf87uqlQJPaLTfbz5B4oXSiOXRFiGjZPr6diyTTjhaBd%2BLGvftqljs5OTPFuoZNF6Ldn3xoR99xeDy0PoiU%2FUW6r2vBvkjQnen%2BwKD5gZN2iNdNTe%2FnrDT0ckA3Ma30179eX%2BhlGUBs%2FyAY8atlLJDJNsYiOVdoAR7fVHAKWykoCzHshqjCHl5xFEIRbTDngMSNberhen5vUAgkMPhQGQM6wme%2F0UP7j%2BjmQlA1qj3P6M7hnZELce7X%2Bq1w5PpGUuXp7k51k8DVdU2mqW9QavznMLz3utAGOpcB5J04IBMt%2FUg6yO6Itdxid0A0qidbGdpaokdCKgfvQ%2FLCiXsd2rrn9SBBCNqaQ1TVwNo%2FxlaIyE9xtm25Irp%2FvVGeKeX7yLqYHG73%2FGvIgm9JlOyyYpG%2Bh%2F%2BItx7YEEiOXwTAiuxvRfZSnQfpJitLd04i7BW%2BBZVQWj0rNOXVTYAsHrJnIfk6UocgFJR5MlEIuRBI8nwR5w%3D%3D&Expires=1779351814)
+2. **Hệ thống Booking nâng cao**: Phát hiện xung đột, định giá linh hoạt và quản lý nhà cung cấp [ppl-ai-file-upload.s3.amazonaws](https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/attachments/105169220/e3f76f38-0d0c-4849-a34c-10ad8321650d/plan.md?AWSAccessKeyId=ASIA2F3EMEYEXFZ3R4LR&Signature=p1zAx4%2B1I3EzX9pKa1vOxA95%2B2Q%3D&x-amz-security-token=IQoJb3JpZ2luX2VjEDgaCXVzLWVhc3QtMSJIMEYCIQD57nuZbtG46JKG5B%2FXmfGf6%2Fl13S8VjiPXp3Vem0MylgIhAIuYBpl%2B%2FKsj%2BeGSXBFJ5fTYh1ix%2FSevJCratJkDYVPuKvMECAEQARoMNjk5NzUzMzA5NzA1IgzJUfuExzKJNgoQBXIq0ARG7dl4%2FKZIWZB1r0hRHfrIgGX62HrrzQHVU3syktXcdUkmEKw88SWQwSxAghHUC%2F%2FgRP22qM1ZFNpWNqhYpMg4TayoTTExuaNuEdwakR3tHsnzhLJzwpj4BUzPnsF6oplFg4QWsENmbhsLXs%2B6vWEOEarFcraZihUxKasznOYC8JpMbZ98izGf2YHQ%2FueRqw1j2txG5k9uMrrXE4fEWuRa9RJozpEG4Tsx3CUyqDkzsQlu2lLkRHQeek0Ga5w1h0NjWsHbPThrZkKs9iQC4M6Ixa6grvYSmZVfHkHhJabQmbQWtxlqN6QF%2BSDdJUvpXNZjqActufWuMu7GDJDiVmh2szA%2BnYaRD8uArx8tv5vLPeiFGF4tV8Pjd0WCpNegolgwEIjjpGDyBAAplm7QvEmphG2TVmjtuDLZWRGThUo76oTrzr%2B0oD0uV9PetBP9Uin1zlNXuv9QjvxDNbyQo4g0NH7MxwpTbCGavV6NFXadWUmHkrdXgEAaCZstKfITilf87uqlQJPaLTfbz5B4oXSiOXRFiGjZPr6diyTTjhaBd%2BLGvftqljs5OTPFuoZNF6Ldn3xoR99xeDy0PoiU%2FUW6r2vBvkjQnen%2BwKD5gZN2iNdNTe%2FnrDT0ckA3Ma30179eX%2BhlGUBs%2FyAY8atlLJDJNsYiOVdoAR7fVHAKWykoCzHshqjCHl5xFEIRbTDngMSNberhen5vUAgkMPhQGQM6wme%2F0UP7j%2BjmQlA1qj3P6M7hnZELce7X%2Bq1w5PpGUuXp7k51k8DVdU2mqW9QavznMLz3utAGOpcB5J04IBMt%2FUg6yO6Itdxid0A0qidbGdpaokdCKgfvQ%2FLCiXsd2rrn9SBBCNqaQ1TVwNo%2FxlaIyE9xtm25Irp%2FvVGeKeX7yLqYHG73%2FGvIgm9JlOyyYpG%2Bh%2F%2BItx7YEEiOXwTAiuxvRfZSnQfpJitLd04i7BW%2BBZVQWj0rNOXVTYAsHrJnIfk6UocgFJR5MlEIuRBI8nwR5w%3D%3D&Expires=1779351814)
+3. **Module Finance toàn diện**: Hóa đơn, thanh toán, báo cáo và hỗ trợ đa tiền tệ [ppl-ai-file-upload.s3.amazonaws](https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/attachments/105169220/e3f76f38-0d0c-4849-a34c-10ad8321650d/plan.md?AWSAccessKeyId=ASIA2F3EMEYEXFZ3R4LR&Signature=p1zAx4%2B1I3EzX9pKa1vOxA95%2B2Q%3D&x-amz-security-token=IQoJb3JpZ2luX2VjEDgaCXVzLWVhc3QtMSJIMEYCIQD57nuZbtG46JKG5B%2FXmfGf6%2Fl13S8VjiPXp3Vem0MylgIhAIuYBpl%2B%2FKsj%2BeGSXBFJ5fTYh1ix%2FSevJCratJkDYVPuKvMECAEQARoMNjk5NzUzMzA5NzA1IgzJUfuExzKJNgoQBXIq0ARG7dl4%2FKZIWZB1r0hRHfrIgGX62HrrzQHVU3syktXcdUkmEKw88SWQwSxAghHUC%2F%2FgRP22qM1ZFNpWNqhYpMg4TayoTTExuaNuEdwakR3tHsnzhLJzwpj4BUzPnsF6oplFg4QWsENmbhsLXs%2B6vWEOEarFcraZihUxKasznOYC8JpMbZ98izGf2YHQ%2FueRqw1j2txG5k9uMrrXE4fEWuRa9RJozpEG4Tsx3CUyqDkzsQlu2lLkRHQeek0Ga5w1h0NjWsHbPThrZkKs9iQC4M6Ixa6grvYSmZVfHkHhJabQmbQWtxlqN6QF%2BSDdJUvpXNZjqActufWuMu7GDJDiVmh2szA%2BnYaRD8uArx8tv5vLPeiFGF4tV8Pjd0WCpNegolgwEIjjpGDyBAAplm7QvEmphG2TVmjtuDLZWRGThUo76oTrzr%2B0oD0uV9PetBP9Uin1zlNXuv9QjvxDNbyQo4g0NH7MxwpTbCGavV6NFXadWUmHkrdXgEAaCZstKfITilf87uqlQJPaLTfbz5B4oXSiOXRFiGjZPr6diyTTjhaBd%2BLGvftqljs5OTPFuoZNF6Ldn3xoR99xeDy0PoiU%2FUW6r2vBvkjQnen%2BwKD5gZN2iNdNTe%2FnrDT0ckA3Ma30179eX%2BhlGUBs%2FyAY8atlLJDJNsYiOVdoAR7fVHAKWykoCzHshqjCHl5xFEIRbTDngMSNberhen5vUAgkMPhQGQM6wme%2F0UP7j%2BjmQlA1qj3P6M7hnZELce7X%2Bq1w5PpGUuXp7k51k8DVdU2mqW9QavznMLz3utAGOpcB5J04IBMt%2FUg6yO6Itdxid0A0qidbGdpaokdCKgfvQ%2FLCiXsd2rrn9SBBCNqaQ1TVwNo%2FxlaIyE9xtm25Irp%2FvVGeKeX7yLqYHG73%2FGvIgm9JlOyyYpG%2Bh%2F%2BItx7YEEiOXwTAiuxvRfZSnQfpJitLd04i7BW%2BBZVQWj0rNOXVTYAsHrJnIfk6UocgFJR5MlEIuRBI8nwR5w%3D%3D&Expires=1779351814)
+4. **Tích hợp liền mạch**: Dòng dữ liệu tự động giữa các module và hệ thống bên ngoài [ppl-ai-file-upload.s3.amazonaws](https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/attachments/105169220/e3f76f38-0d0c-4849-a34c-10ad8321650d/plan.md?AWSAccessKeyId=ASIA2F3EMEYEXFZ3R4LR&Signature=p1zAx4%2B1I3EzX9pKa1vOxA95%2B2Q%3D&x-amz-security-token=IQoJb3JpZ2luX2VjEDgaCXVzLWVhc3QtMSJIMEYCIQD57nuZbtG46JKG5B%2FXmfGf6%2Fl13S8VjiPXp3Vem0MylgIhAIuYBpl%2B%2FKsj%2BeGSXBFJ5fTYh1ix%2FSevJCratJkDYVPuKvMECAEQARoMNjk5NzUzMzA5NzA1IgzJUfuExzKJNgoQBXIq0ARG7dl4%2FKZIWZB1r0hRHfrIgGX62HrrzQHVU3syktXcdUkmEKw88SWQwSxAghHUC%2F%2FgRP22qM1ZFNpWNqhYpMg4TayoTTExuaNuEdwakR3tHsnzhLJzwpj4BUzPnsF6oplFg4QWsENmbhsLXs%2B6vWEOEarFcraZihUxKasznOYC8JpMbZ98izGf2YHQ%2FueRqw1j2txG5k9uMrrXE4fEWuRa9RJozpEG4Tsx3CUyqDkzsQlu2lLkRHQeek0Ga5w1h0NjWsHbPThrZkKs9iQC4M6Ixa6grvYSmZVfHkHhJabQmbQWtxlqN6QF%2BSDdJUvpXNZjqActufWuMu7GDJDiVmh2szA%2BnYaRD8uArx8tv5vLPeiFGF4tV8Pjd0WCpNegolgwEIjjpGDyBAAplm7QvEmphG2TVmjtuDLZWRGThUo76oTrzr%2B0oD0uV9PetBP9Uin1zlNXuv9QjvxDNbyQo4g0NH7MxwpTbCGavV6NFXadWUmHkrdXgEAaCZstKfITilf87uqlQJPaLTfbz5B4oXSiOXRFiGjZPr6diyTTjhaBd%2BLGvftqljs5OTPFuoZNF6Ldn3xoR99xeDy0PoiU%2FUW6r2vBvkjQnen%2BwKD5gZN2iNdNTe%2FnrDT0ckA3Ma30179eX%2BhlGUBs%2FyAY8atlLJDJNsYiOVdoAR7fVHAKWykoCzHshqjCHl5xFEIRbTDngMSNberhen5vUAgkMPhQGQM6wme%2F0UP7j%2BjmQlA1qj3P6M7hnZELce7X%2Bq1w5PpGUuXp7k51k8DVdU2mqW9QavznMLz3utAGOpcB5J04IBMt%2FUg6yO6Itdxid0A0qidbGdpaokdCKgfvQ%2FLCiXsd2rrn9SBBCNqaQ1TVwNo%2FxlaIyE9xtm25Irp%2FvVGeKeX7yLqYHG73%2FGvIgm9JlOyyYpG%2Bh%2F%2BItx7YEEiOXwTAiuxvRfZSnQfpJitLd04i7BW%2BBZVQWj0rNOXVTYAsHrJnIfk6UocgFJR5MlEIuRBI8nwR5w%3D%3D&Expires=1779351814)
+5. **Trải nghiệm người dùng tốt hơn**: Giao diện trực quan, cập nhật thời gian thực và báo cáo toàn diện [ppl-ai-file-upload.s3.amazonaws](https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/attachments/105169220/e3f76f38-0d0c-4849-a34c-10ad8321650d/plan.md?AWSAccessKeyId=ASIA2F3EMEYEXFZ3R4LR&Signature=p1zAx4%2B1I3EzX9pKa1vOxA95%2B2Q%3D&x-amz-security-token=IQoJb3JpZ2luX2VjEDgaCXVzLWVhc3QtMSJIMEYCIQD57nuZbtG46JKG5B%2FXmfGf6%2Fl13S8VjiPXp3Vem0MylgIhAIuYBpl%2B%2FKsj%2BeGSXBFJ5fTYh1ix%2FSevJCratJkDYVPuKvMECAEQARoMNjk5NzUzMzA5NzA1IgzJUfuExzKJNgoQBXIq0ARG7dl4%2FKZIWZB1r0hRHfrIgGX62HrrzQHVU3syktXcdUkmEKw88SWQwSxAghHUC%2F%2FgRP22qM1ZFNpWNqhYpMg4TayoTTExuaNuEdwakR3tHsnzhLJzwpj4BUzPnsF6oplFg4QWsENmbhsLXs%2B6vWEOEarFcraZihUxKasznOYC8JpMbZ98izGf2YHQ%2FueRqw1j2txG5k9uMrrXE4fEWuRa9RJozpEG4Tsx3CUyqDkzsQlu2lLkRHQeek0Ga5w1h0NjWsHbPThrZkKs9iQC4M6Ixa6grvYSmZVfHkHhJabQmbQWtxlqN6QF%2BSDdJUvpXNZjqActufWuMu7GDJDiVmh2szA%2BnYaRD8uArx8tv5vLPeiFGF4tV8Pjd0WCpNegolgwEIjjpGDyBAAplm7QvEmphG2TVmjtuDLZWRGThUo76oTrzr%2B0oD0uV9PetBP9Uin1zlNXuv9QjvxDNbyQo4g0NH7MxwpTbCGavV6NFXadWUmHkrdXgEAaCZstKfITilf87uqlQJPaLTfbz5B4oXSiOXRFiGjZPr6diyTTjhaBd%2BLGvftqljs5OTPFuoZNF6Ldn3xoR99xeDy0PoiU%2FUW6r2vBvkjQnen%2BwKD5gZN2iNdNTe%2FnrDT0ckA3Ma30179eX%2BhlGUBs%2FyAY8atlLJDJNsYiOVdoAR7fVHAKWykoCzHshqjCHl5xFEIRbTDngMSNberhen5vUAgkMPhQGQM6wme%2F0UP7j%2BjmQlA1qj3P6M7hnZELce7X%2Bq1w5PpGUuXp7k51k8DVdU2mqW9QavznMLz3utAGOpcB5J04IBMt%2FUg6yO6Itdxid0A0qidbGdpaokdCKgfvQ%2FLCiXsd2rrn9SBBCNqaQ1TVwNo%2FxlaIyE9xtm25Irp%2FvVGeKeX7yLqYHG73%2FGvIgm9JlOyyYpG%2Bh%2F%2BItx7YEEiOXwTAiuxvRfZSnQfpJitLd04i7BW%2BBZVQWj0rNOXVTYAsHrJnIfk6UocgFJR5MlEIuRBI8nwR5w%3D%3D&Expires=1779351814)
+
+Kế hoạch triển khai này giải quyết tất cả các khoảng trống đã xác định và cung cấp một lộ trình rõ ràng để hoàn thành tích hợp Giai đoạn 4 với một hệ thống vận hành tour sẵn sàng cho môi trường production. [ppl-ai-file-upload.s3.amazonaws](https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/attachments/105169220/e3f76f38-0d0c-4849-a34c-10ad8321650d/plan.md?AWSAccessKeyId=ASIA2F3EMEYEXFZ3R4LR&Signature=p1zAx4%2B1I3EzX9pKa1vOxA95%2B2Q%3D&x-amz-security-token=IQoJb3JpZ2luX2VjEDgaCXVzLWVhc3QtMSJIMEYCIQD57nuZbtG46JKG5B%2FXmfGf6%2Fl13S8VjiPXp3Vem0MylgIhAIuYBpl%2B%2FKsj%2BeGSXBFJ5fTYh1ix%2FSevJCratJkDYVPuKvMECAEQARoMNjk5NzUzMzA5NzA1IgzJUfuExzKJNgoQBXIq0ARG7dl4%2FKZIWZB1r0hRHfrIgGX62HrrzQHVU3syktXcdUkmEKw88SWQwSxAghHUC%2F%2FgRP22qM1ZFNpWNqhYpMg4TayoTTExuaNuEdwakR3tHsnzhLJzwpj4BUzPnsF6oplFg4QWsENmbhsLXs%2B6vWEOEarFcraZihUxKasznOYC8JpMbZ98izGf2YHQ%2FueRqw1j2txG5k9uMrrXE4fEWuRa9RJozpEG4Tsx3CUyqDkzsQlu2lLkRHQeek0Ga5w1h0NjWsHbPThrZkKs9iQC4M6Ixa6grvYSmZVfHkHhJabQmbQWtxlqN6QF%2BSDdJUvpXNZjqActufWuMu7GDJDiVmh2szA%2BnYaRD8uArx8tv5vLPeiFGF4tV8Pjd0WCpNegolgwEIjjpGDyBAAplm7QvEmphG2TVmjtuDLZWRGThUo76oTrzr%2B0oD0uV9PetBP9Uin1zlNXuv9QjvxDNbyQo4g0NH7MxwpTbCGavV6NFXadWUmHkrdXgEAaCZstKfITilf87uqlQJPaLTfbz5B4oXSiOXRFiGjZPr6diyTTjhaBd%2BLGvftqljs5OTPFuoZNF6Ldn3xoR99xeDy0PoiU%2FUW6r2vBvkjQnen%2BwKD5gZN2iNdNTe%2FnrDT0ckA3Ma30179eX%2BhlGUBs%2FyAY8atlLJDJNsYiOVdoAR7fVHAKWykoCzHshqjCHl5xFEIRbTDngMSNberhen5vUAgkMPhQGQM6wme%2F0UP7j%2BjmQlA1qj3P6M7hnZELce7X%2Bq1w5PpGUuXp7k51k8DVdU2mqW9QavznMLz3utAGOpcB5J04IBMt%2FUg6yO6Itdxid0A0qidbGdpaokdCKgfvQ%2FLCiXsd2rrn9SBBCNqaQ1TVwNo%2FxlaIyE9xtm25Irp%2FvVGeKeX7yLqYHG73%2FGvIgm9JlOyyYpG%2Bh%2F%2BItx7YEEiOXwTAiuxvRfZSnQfpJitLd04i7BW%2BBZVQWj0rNOXVTYAsHrJnIfk6UocgFJR5MlEIuRBI8nwR5w%3D%3D&Expires=1779351814)
+
