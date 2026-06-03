@@ -1,9 +1,10 @@
 // @ts-nocheck
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import path from 'node:path';
+
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
 import { defineConfig, env } from 'prisma/config';
-import pg from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
 
 export default defineConfig({
   schema: path.join('prisma', 'schema.prisma'),
