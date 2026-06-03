@@ -34,6 +34,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     ItinerariesModule,
     GroupToursModule,
     ToursModule,
+    ToursModule,
     BookingsModule,
     FinanceModule,
     InvoicesModule,
