@@ -84,10 +84,9 @@ Open http://localhost:3000 — login: `admin@demotourop.com` / `Admin@123456`
 ---
 
 ## Pull Request Process
-
-1. **Fork** the repo and create your branch from `master`:
+1. **Fork** the repo and create your branch from `develop` (not `master`):
    ```bash
-   git checkout -b feat/your-feature-name
+   git checkout -b feat/your-feature-name origin/develop
    ```
 
 2. **Make your changes** — keep each PR focused on one thing.
