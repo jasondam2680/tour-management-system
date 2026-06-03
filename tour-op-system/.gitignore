@@ -8,3 +8,5 @@ npm-debug.log*
 .DS_Store
 .turbo/
 uploads/
+# Internal planning and AI context files
+.internal/
