@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Ask a question
+    url: https://github.com/jasondam2680/tour-management-system/discussions
+    about: For general questions, please use Discussions instead of Issues.
