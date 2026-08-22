@@ -267,7 +267,7 @@ export default function NewGroupTourPage() {
                 <div className="flex flex-col items-center justify-center py-12 text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
                   <p className="text-2xl mb-2">🗺️</p>
                   <p className="font-medium">Chưa có ngày nào</p>
-                  <p className="text-sm mt-1">Nhấn "Thêm ngày" để bắt đầu xây dựng itinerary</p>
+                  <p className="text-sm mt-1">Nhấn &quot;Thêm ngày&quot; để bắt đầu xây dựng itinerary</p>
                 </div>
               )}
 

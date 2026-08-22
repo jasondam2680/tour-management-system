@@ -237,12 +237,6 @@ export default function FinancePage() {
                   </Link>
                 ))}
               </div>
-                  <span className="text-sm font-bold text-red-600">
-                    {formatMoney(inv.amountDue, inv.currency)}
-                  </span>
-                </Link>
-              ))}
-            </div>
           )}
         </div>
       </div>

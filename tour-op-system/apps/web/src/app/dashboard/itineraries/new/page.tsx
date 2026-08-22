@@ -265,7 +265,7 @@ export default function NewItineraryPage() {
             <div className="bg-white border border-gray-200 rounded-xl p-8 text-center">
               <p className="text-gray-400 text-lg">Chưa có ngày nào</p>
               <p className="text-sm text-gray-400 mt-1">
-                Nhấn "Thêm ngày" để bắt đầu tạo lịch trình
+                Nhấn &quot;Thêm ngày&quot; để bắt đầu tạo lịch trình
               </p>
             </div>
           )}

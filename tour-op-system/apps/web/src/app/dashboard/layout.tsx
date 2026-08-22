@@ -54,6 +54,12 @@ const NAV_ITEMS: NavItem[] = [
   },
   { label: 'Tours', href: '/dashboard/tours', icon: '✈️' },
   {
+    label: 'Operations',
+    href: '/dashboard/operations',
+    icon: '🧭',
+    roles: ['SUPER_ADMIN', 'ADMIN', 'OP', 'GUIDE'],
+  },
+  {
     label: 'Bookings',
     href: '/dashboard/bookings',
     icon: '📅',
