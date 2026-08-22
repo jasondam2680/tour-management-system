@@ -60,6 +60,18 @@ const NAV_ITEMS: NavItem[] = [
     roles: ['SUPER_ADMIN', 'ADMIN', 'OP', 'GUIDE'],
   },
   {
+    label: 'Procurement',
+    href: '/dashboard/procurement',
+    icon: '🧾',
+    roles: ['SUPER_ADMIN', 'ADMIN', 'OP'],
+  },
+  {
+    label: 'Dispatch Calendar',
+    href: '/dashboard/dispatch',
+    icon: '🗓️',
+    roles: ['SUPER_ADMIN', 'ADMIN', 'OP', 'GUIDE'],
+  },
+  {
     label: 'Bookings',
     href: '/dashboard/bookings',
     icon: '📅',

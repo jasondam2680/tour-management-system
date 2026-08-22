@@ -5,6 +5,7 @@ import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
 import { QueryBookingDto } from './dto/query-booking.dto';
 import { ChangeBookingStatusDto } from './dto/change-status.dto';
+import { CreatePriceInquiryDto } from './dto/create-price-inquiry.dto';
 
 
 @Injectable()
@@ -63,7 +64,10 @@ export class BookingsService {
         supplier: true,
         items: { include: { resource: true } },
         payments: { orderBy: { createdAt: 'desc' } },
-        inquiries: { orderBy: { sentAt: 'desc' } },
+        inquiries: {
+          orderBy: { sentAt: 'desc' },
+          include: { supplier: { select: { id: true, name: true, category: true } } },
+        },
       },
     });
     if (!booking) throw new NotFoundException(`Booking ${id} not found`);
@@ -171,6 +175,37 @@ export class BookingsService {
     return this.prisma.booking.update({
       where: { id },
       data: { status, ...timestamps, ...(confirmationNo && { confirmationNo }) },
+    });
+  }
+
+  async createInquiry(id: string, organizationId: string, dto: CreatePriceInquiryDto) {
+    const booking = await this.findOne(id, organizationId);
+    const supplier = await this.prisma.supplier.findFirst({
+      where: { id: dto.supplierId, organizationId, isActive: true },
+    });
+    if (!supplier) throw new NotFoundException('Nhà cung cấp không tồn tại hoặc đã ngừng hoạt động');
+
+    return this.prisma.priceInquiry.create({
+      data: {
+        bookingId: id,
+        tourId: booking.tourId,
+        supplierId: dto.supplierId,
+        subject: dto.subject,
+        content: dto.content,
+        quotedPrice: dto.quotedPrice,
+        currency: dto.currency ?? booking.currency,
+        notes: dto.notes,
+      },
+      include: { supplier: { select: { id: true, name: true, category: true } } },
+    });
+  }
+
+  async listInquiries(id: string, organizationId: string) {
+    const booking = await this.findOne(id, organizationId);
+    return this.prisma.priceInquiry.findMany({
+      where: { bookingId: booking.id },
+      orderBy: { sentAt: 'desc' },
+      include: { supplier: { select: { id: true, name: true, category: true } } },
     });
   }
 

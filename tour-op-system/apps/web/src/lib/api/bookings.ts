@@ -16,6 +16,19 @@ export interface BookingItem {
   notes?: string;
 }
 
+export interface BookingInquiry {
+  id: string;
+  subject: string;
+  content: string;
+  sentAt: string;
+  replyAt?: string;
+  quotedPrice?: number;
+  currency: string;
+  notes?: string;
+  isSelected: boolean;
+  supplier?: { id: string; name: string; category: string };
+}
+
 export interface Booking {
   id: string;
   code: string;
@@ -46,6 +59,7 @@ export interface Booking {
   supplier?: { id: string; name: string; category: string; phone?: string };
   items?: BookingItem[];
   payments?: any[];
+  inquiries?: BookingInquiry[];
 }
 
 export interface BookingStats {
@@ -101,4 +115,15 @@ export const bookingsApi = {
     amount: number; currency: string; method: string;
     reference?: string; notes?: string; dueDate?: string;
   }) => api.post(`/bookings/${id}/payments`, data),
+
+  createInquiry: (id: string, data: {
+    supplierId: string;
+    subject: string;
+    content: string;
+    quotedPrice?: number;
+    currency?: string;
+    notes?: string;
+  }) => api.post<BookingInquiry>(`/bookings/${id}/inquiries`, data),
+
+  getInquiries: (id: string) => api.get<BookingInquiry[]>(`/bookings/${id}/inquiries`),
 };

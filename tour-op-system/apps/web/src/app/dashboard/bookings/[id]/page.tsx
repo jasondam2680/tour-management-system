@@ -59,6 +59,13 @@ export default function BookingDetailPage() {
   const [confirmNo, setConfirmNo] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  const [showInquiry, setShowInquiry] = useState(false);
+  const [inquiry, setInquiry] = useState({
+    subject: '',
+    content: '',
+    quotedPrice: '',
+    notes: '',
+  });
   const [payment, setPayment] = useState({
     amount: 0,
     currency: 'VND',
@@ -100,6 +107,26 @@ export default function BookingDetailPage() {
     try {
       await bookingsApi.changeStatus(id, 'CONFIRMED', confirmNo);
       setShowConfirm(false);
+      await load();
+    } finally {
+      setChanging(false);
+    }
+  }
+
+  async function handleInquiry() {
+    if (!booking?.supplierId || !inquiry.subject || !inquiry.content) return;
+    setChanging(true);
+    try {
+      await bookingsApi.createInquiry(id, {
+        supplierId: booking.supplierId,
+        subject: inquiry.subject,
+        content: inquiry.content,
+        quotedPrice: inquiry.quotedPrice ? Number(inquiry.quotedPrice) : undefined,
+        currency: booking.currency,
+        notes: inquiry.notes || undefined,
+      });
+      setInquiry({ subject: '', content: '', quotedPrice: '', notes: '' });
+      setShowInquiry(false);
       await load();
     } finally {
       setChanging(false);
@@ -154,6 +181,21 @@ export default function BookingDetailPage() {
               {a.label}
             </button>
           ))}
+          {booking.supplierId && !['COMPLETED', 'CANCELLED'].includes(booking.status) && (
+            <button
+              onClick={() => {
+                setInquiry((value) => ({
+                  ...value,
+                  subject: `Yêu cầu xác nhận dịch vụ ${booking.code}`,
+                  content: `Kính gửi ${booking.supplier?.name || 'nhà cung cấp'}, vui lòng xác nhận dịch vụ cho booking ${booking.code}.`,
+                }));
+                setShowInquiry(true);
+              }}
+              className="border border-violet-300 text-violet-700 hover:bg-violet-50 px-4 py-2 rounded-lg text-sm font-medium"
+            >
+              ✉ Hỏi / nhắc NCC
+            </button>
+          )}
           {booking.status === 'CONFIRMED' && booking.amountDue > 0 && (
             <button
               onClick={() => setShowPayment(true)}
@@ -196,6 +238,60 @@ export default function BookingDetailPage() {
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm disabled:opacity-60"
               >
                 Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showInquiry && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl space-y-4">
+            <div>
+              <h3 className="font-semibold text-gray-900">Gửi yêu cầu / nhắc xác nhận NCC</h3>
+              <p className="mt-1 text-xs text-gray-500">Yêu cầu sẽ được lưu trong lịch sử procurement của booking.</p>
+            </div>
+            <input
+              placeholder="Tiêu đề yêu cầu"
+              value={inquiry.subject}
+              onChange={(e) => setInquiry((value) => ({ ...value, subject: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
+            <textarea
+              rows={4}
+              placeholder="Nội dung cần NCC xác nhận..."
+              value={inquiry.content}
+              onChange={(e) => setInquiry((value) => ({ ...value, content: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-xs text-gray-600">Giá NCC báo (nếu có)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={inquiry.quotedPrice}
+                  onChange={(e) => setInquiry((value) => ({ ...value, quotedPrice: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-gray-600">Ghi chú nội bộ</label>
+                <input
+                  value={inquiry.notes}
+                  onChange={(e) => setInquiry((value) => ({ ...value, notes: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button onClick={() => setShowInquiry(false)} className="flex-1 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm">Đóng</button>
+              <button
+                onClick={handleInquiry}
+                disabled={changing || !inquiry.subject || !inquiry.content}
+                className="flex-1 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg text-sm disabled:opacity-60"
+              >
+                {changing ? 'Đang lưu...' : 'Lưu yêu cầu'}
               </button>
             </div>
           </div>
@@ -257,6 +353,34 @@ export default function BookingDetailPage() {
           </div>
         </div>
       )}
+
+      <section className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_1.4fr]">
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <div className="flex items-center justify-between">
+            <div><h2 className="font-semibold text-gray-800">Service confirmation</h2><p className="mt-1 text-xs text-gray-400">Theo dõi luồng yêu cầu dịch vụ</p></div>
+            <span className={`rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLOR[booking.status]}`}>{STATUS_LABEL[booking.status]}</span>
+          </div>
+          <div className="mt-5 space-y-4">
+            {(['DRAFT', 'PENDING', 'CONFIRMED', 'COMPLETED'] as BookingStatus[]).map((status, index) => {
+              const statusOrder = ['DRAFT', 'PENDING', 'CONFIRMED', 'COMPLETED'];
+              const currentIndex = statusOrder.indexOf(booking.status);
+              const completed = currentIndex >= index && booking.status !== 'CANCELLED';
+              return (
+                <div key={status} className="flex items-start gap-3">
+                  <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${completed ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'}`}>{completed ? '✓' : index + 1}</div>
+                  <div className="min-w-0"><p className={`text-sm font-medium ${completed ? 'text-slate-900' : 'text-slate-400'}`}>{STATUS_LABEL[status]}</p><p className="mt-0.5 text-xs text-slate-400">{status === 'DRAFT' ? 'Tạo yêu cầu dịch vụ' : status === 'PENDING' ? 'Đã gửi đến nhà cung cấp' : status === 'CONFIRMED' ? 'Đã có xác nhận / confirmation number' : 'Dịch vụ đã hoàn tất'}</p></div>
+                </div>
+              );
+            })}
+            {booking.status === 'CANCELLED' && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">Booking đã bị huỷ, cần kiểm tra hoàn tiền hoặc chi phí phát sinh.</p>}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <div className="flex items-start justify-between gap-3"><div><h2 className="font-semibold text-gray-800">Lịch sử hỏi giá / phản hồi NCC</h2><p className="mt-1 text-xs text-gray-400">{booking.inquiries?.length ?? 0} yêu cầu đã ghi nhận</p></div>{booking.supplierId && <button onClick={() => setShowInquiry(true)} className="rounded-lg border border-violet-200 px-3 py-2 text-xs font-medium text-violet-700 hover:bg-violet-50">+ Tạo yêu cầu</button>}</div>
+          {!booking.inquiries?.length ? <p className="mt-5 rounded-lg bg-slate-50 px-3 py-4 text-center text-sm text-slate-400">Chưa có yêu cầu hỏi giá nào.</p> : <div className="mt-4 space-y-3">{booking.inquiries.map((item) => <div key={item.id} className="rounded-xl border border-slate-100 bg-slate-50/70 p-3"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-medium text-slate-800">{item.subject}</p><span className="text-xs text-slate-400">{formatDate(item.sentAt)}</span></div><p className="mt-1 text-xs text-slate-500">{item.supplier?.name || booking.supplier?.name || 'Nhà cung cấp'} · {item.quotedPrice ? formatMoney(item.quotedPrice, item.currency) : 'Chưa có giá báo'}</p><p className="mt-2 text-sm leading-5 text-slate-600">{item.content}</p>{item.notes && <p className="mt-2 text-xs text-violet-700">Ghi chú: {item.notes}</p>}</div>)}</div>}
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-5">

@@ -5,6 +5,7 @@ import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
 import { QueryBookingDto } from './dto/query-booking.dto';
 import { ChangeBookingStatusDto } from './dto/change-status.dto';
+import { CreatePriceInquiryDto } from './dto/create-price-inquiry.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { IsNumber, IsString, IsOptional, IsEnum, Min } from 'class-validator';
@@ -88,6 +89,22 @@ export class BookingsController {
     @Body() dto: ChangeBookingStatusDto,
   ) {
     return this.bookingsService.changeStatus(id, user.organizationId, dto);
+  }
+
+  @Get(':id/inquiries')
+  @ApiOperation({ summary: 'List supplier quote inquiries for a booking' })
+  listInquiries(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.bookingsService.listInquiries(id, user.organizationId);
+  }
+
+  @Post(':id/inquiries')
+  @ApiOperation({ summary: 'Create supplier quote inquiry for a booking' })
+  createInquiry(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body() dto: CreatePriceInquiryDto,
+  ) {
+    return this.bookingsService.createInquiry(id, user.organizationId, dto);
   }
 
   @Post(':id/payments')
