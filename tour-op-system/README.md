@@ -149,6 +149,36 @@ For detailed progress tracking, see [PROGRESS.md](PROGRESS.md)
 - **Phase 1-3**: 100% complete
 - **Phase 4**: 40% complete (in progress)
 
+## Permanent Production Deployment
+
+The repository now includes a production-ready Docker Compose stack with PostgreSQL, the NestJS API, the Next.js web application, and Caddy as the HTTPS reverse proxy. Caddy automatically obtains and renews TLS certificates when the domain DNS points to the deployment server.
+
+1. Copy `.env.production.example` to `.env.production` and set a real domain, strong PostgreSQL password, and two different strong JWT secrets.
+2. Point the domain's A/AAAA records to the deployment server and ensure ports `80` and `443` are open.
+3. Build and start the stack:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.production.yml up -d --build
+```
+
+4. Apply the schema migrations once:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.production.yml run --rm api npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+```
+
+5. Seed demo data only for a non-production/demo environment:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.production.yml run --rm api node apps/api/dist/prisma/seed.js
+```
+
+The production web image receives `NEXT_PUBLIC_API_URL` at build time and uses the same-domain `/api/v1` path, avoiding browser CORS problems. The API accepts a comma-separated `FRONTEND_URL` list and binds to `HOST` (default `0.0.0.0`). Do not use the demo credentials or seed script on a public production database.
+
+## Authentication and Demo Accounts
+
+The executable seed is idempotent for demo access: rerunning it refreshes the demo password hashes and reactivates the accounts. This prevents stale hashes or inactive users from causing misleading login failures. The current demo credentials are shown on the login screen and should be changed or removed before production use.
+
 ## Codespaces / Devcontainer
 
 This repository includes a `.devcontainer` configuration to run the project in GitHub Codespaces or a local Docker-based development container.

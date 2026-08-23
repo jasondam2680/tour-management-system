@@ -30,11 +30,19 @@ async function main() {
   // 2. USERS
   const adminHash = await bcrypt.hash('Admin@123456', 12);
   await prisma.user.upsert({
-    where: { email: 'admin@demotourop.com' }, update: {},
+    where: { email: 'admin@demotourop.com' },
+    update: {
+      organizationId: org.id,
+      passwordHash: adminHash,
+      firstName: 'Admin',
+      lastName: 'System',
+      role: UserRole.SUPER_ADMIN,
+      status: 'ACTIVE',
+    },
     create: {
       organizationId: org.id, email: 'admin@demotourop.com',
       passwordHash: adminHash, firstName: 'Admin', lastName: 'System',
-      role: UserRole.SUPER_ADMIN,
+      role: UserRole.SUPER_ADMIN, status: 'ACTIVE',
     },
   });
 
@@ -46,8 +54,24 @@ async function main() {
   ]) {
     const hash = await bcrypt.hash('Password@123', 12);
     await prisma.user.upsert({
-      where: { email: u.email }, update: {},
-      create: { organizationId: org.id, email: u.email, passwordHash: hash, firstName: u.name[0], lastName: u.name[1], role: u.role },
+      where: { email: u.email },
+      update: {
+        organizationId: org.id,
+        passwordHash: hash,
+        firstName: u.name[0],
+        lastName: u.name[1],
+        role: u.role,
+        status: 'ACTIVE',
+      },
+      create: {
+        organizationId: org.id,
+        email: u.email,
+        passwordHash: hash,
+        firstName: u.name[0],
+        lastName: u.name[1],
+        role: u.role,
+        status: 'ACTIVE',
+      },
     });
   }
   console.log('✅ Users (5)');

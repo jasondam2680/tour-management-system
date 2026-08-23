@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole } from '@prisma/client';
+import { PrismaClient, UserRole, UserStatus } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as pg from 'pg';
 import * as bcrypt from 'bcryptjs';
@@ -30,7 +30,14 @@ async function main() {
   const adminHash = await bcrypt.hash('Admin@123456', 12);
   await prisma.user.upsert({
     where: { email: 'admin@demotourop.com' },
-    update: {},
+    update: {
+      organizationId: org.id,
+      passwordHash: adminHash,
+      firstName: 'Admin',
+      lastName: 'System',
+      role: UserRole.SUPER_ADMIN,
+      status: UserStatus.ACTIVE,
+    },
     create: {
       organizationId: org.id,
       email: 'admin@demotourop.com',
@@ -38,6 +45,7 @@ async function main() {
       firstName: 'Admin',
       lastName: 'System',
       role: UserRole.SUPER_ADMIN,
+      status: UserStatus.ACTIVE,
     },
   });
   console.log('✅ Admin: admin@demotourop.com / Admin@123456');
@@ -53,7 +61,14 @@ async function main() {
     const hash = await bcrypt.hash('Password@123', 12);
     await prisma.user.upsert({
       where: { email: u.email },
-      update: {},
+      update: {
+        organizationId: org.id,
+        passwordHash: hash,
+        firstName: u.first,
+        lastName: u.last,
+        role: u.role,
+        status: UserStatus.ACTIVE,
+      },
       create: {
         organizationId: org.id,
         email: u.email,
@@ -61,6 +76,7 @@ async function main() {
         firstName: u.first,
         lastName: u.last,
         role: u.role,
+        status: UserStatus.ACTIVE,
       },
     });
     console.log(`✅ ${u.role}: ${u.email} / Password@123`);
