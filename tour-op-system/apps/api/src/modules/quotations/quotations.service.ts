@@ -4,12 +4,15 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateQuotationDto } from './dto/create-quotation.dto';
 import { UpdateQuotationDto } from './dto/update-quotation.dto';
 import { QueryQuotationDto } from './dto/query-quotation.dto';
 import { QuotationItemDto } from './dto/quotation-item.dto';
-import { QuotationStatus } from '@prisma/client';
+import { QuotationStatus, QuotationWorkflowStage } from '@prisma/client';
+import { CreateProgramOptionDto } from './dto/create-program-option.dto';
+import { CreateCostSheetDto } from './dto/create-cost-sheet.dto';
 
 // Status transitions for quotations
 const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
@@ -357,6 +360,8 @@ export class QuotationsService {
         itineraryVersion: {
           include: { days: { include: { activities: true }, orderBy: { dayNumber: 'asc' } } },
         },
+        programOptions: { orderBy: { optionNo: 'asc' } },
+        costSheets: { include: { lines: { orderBy: { sortOrder: 'asc' } } }, orderBy: { version: 'desc' } },
       },
     });
     if (!q) throw new NotFoundException(`Quotation ${id} not found`);
@@ -559,6 +564,143 @@ export class QuotationsService {
         },
       },
     });
+  }
+
+  async createProgramOption(id: string, dto: CreateProgramOptionDto, organizationId: string) {
+    await this.findOne(id, organizationId);
+    const option = await this.prisma.quotationProgramOption.create({
+      data: {
+        quotationId: id,
+        optionNo: dto.optionNo,
+        title: dto.title,
+        summary: dto.summary,
+        itineraryVersionId: dto.itineraryVersionId,
+      },
+    });
+    await this.prisma.quotation.update({
+      where: { id },
+      data: { workflowStage: QuotationWorkflowStage.PROGRAM_OPTIONS },
+    });
+    return option;
+  }
+
+  async createCostSheet(id: string, dto: CreateCostSheetDto, organizationId: string) {
+    await this.findOne(id, organizationId);
+    const latest = await this.prisma.quotationCostSheet.findFirst({
+      where: { quotationId: id },
+      orderBy: { version: 'desc' },
+      select: { version: true },
+    });
+    const version = (latest?.version ?? 0) + 1;
+    const costSheet = await this.prisma.quotationCostSheet.create({
+      data: {
+        quotationId: id,
+        version,
+        title: dto.title,
+        notes: dto.notes,
+        lines: {
+          create: dto.lines.map((line, index) => ({
+            sortOrder: index,
+            category: line.category,
+            name: line.name,
+            description: line.description,
+            quantity: line.quantity,
+            unitPrice: line.unitPrice,
+            serviceCount: line.serviceCount,
+            total: line.quantity * line.unitPrice * line.serviceCount,
+            currency: line.currency,
+            supplierName: line.supplierName,
+            isIncluded: line.isIncluded ?? true,
+            notes: line.notes,
+          })),
+        },
+      },
+      include: { lines: { orderBy: { sortOrder: 'asc' } } },
+    });
+    await this.prisma.quotation.update({
+      where: { id },
+      data: { workflowStage: QuotationWorkflowStage.COST_SHEET },
+    });
+    return costSheet;
+  }
+
+  async updateWorkflowStage(
+    id: string,
+    stage: QuotationWorkflowStage,
+    organizationId: string,
+    note?: string,
+  ) {
+    await this.findOne(id, organizationId);
+    const now = new Date();
+    return this.prisma.quotation.update({
+      where: { id },
+      data: {
+        workflowStage: stage,
+        ...(stage === QuotationWorkflowStage.CUSTOMER_APPROVED
+          ? { customerApprovedAt: now, approvedAt: now }
+          : {}),
+        ...(note ? { notes: note } : {}),
+      },
+    });
+  }
+
+  async createCustomerShare(id: string, organizationId: string) {
+    const quotation = await this.findOne(id, organizationId);
+    const token = randomBytes(24).toString('hex');
+    const workflowStage = quotation.workflowStage === QuotationWorkflowStage.CUSTOMER_BRIEF
+      ? QuotationWorkflowStage.PROGRAM_OPTIONS
+      : quotation.workflowStage;
+    return this.prisma.quotation.update({
+      where: { id },
+      data: { customerShareToken: token, workflowStage },
+      select: { id: true, code: true, customerShareToken: true, workflowStage: true },
+    });
+  }
+
+  async getCustomerShare(token: string) {
+    const quotation = await this.prisma.quotation.findUnique({
+      where: { customerShareToken: token },
+      include: {
+        customer: { select: { firstName: true, lastName: true, companyName: true } },
+        programOptions: { orderBy: { optionNo: 'asc' } },
+        itineraryVersion: {
+          include: { days: { include: { activities: true }, orderBy: { dayNumber: 'asc' } } },
+        },
+        items: {
+          where: { isIncluded: true },
+          orderBy: [{ day: 'asc' }, { sortOrder: 'asc' }],
+          select: {
+            day: true, category: true, name: true, description: true, quantity: true,
+            unit: true, sellingPrice: true, totalSelling: true, currency: true, date: true,
+            startTime: true, endTime: true, isOptional: true, isIncluded: true,
+          },
+        },
+      },
+    });
+    if (!quotation) throw new NotFoundException('Shared quotation not found');
+    return quotation;
+  }
+
+  async selectCustomerProgram(token: string, optionNo: number) {
+    const quotation = await this.getCustomerShare(token);
+    const option = quotation.programOptions.find((item) => item.optionNo === optionNo);
+    if (!option) throw new NotFoundException('Program option not found');
+    await this.prisma.quotationProgramOption.updateMany({
+      where: { quotationId: quotation.id },
+      data: { isSelected: false, selectedAt: null },
+    });
+    await this.prisma.quotationProgramOption.update({
+      where: { id: option.id },
+      data: { isSelected: true, selectedAt: new Date() },
+    });
+    await this.prisma.quotation.update({
+      where: { id: quotation.id },
+      data: {
+        workflowStage: QuotationWorkflowStage.PROGRAM_SELECTED,
+        customerSelectedAt: new Date(),
+      },
+    });
+    return this.getCustomerShare(token);
   }
 
   async getStats(organizationId: string) {

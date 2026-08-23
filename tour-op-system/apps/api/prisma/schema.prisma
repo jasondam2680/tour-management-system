@@ -121,6 +121,16 @@ enum IncidentSeverity {
   CRITICAL
 }
 
+enum QuotationWorkflowStage {
+  CUSTOMER_BRIEF
+  PROGRAM_OPTIONS
+  PROGRAM_SELECTED
+  COST_SHEET
+  QUOTATION_READY
+  SENT_TO_CUSTOMER
+  CUSTOMER_APPROVED
+}
+
 enum DocumentType {
   CONTRACT
   INVOICE
@@ -415,6 +425,11 @@ model Quotation {
   approvedAt     DateTime?
   rejectedAt     DateTime?
   rejectedReason String?
+  workflowStage  QuotationWorkflowStage @default(CUSTOMER_BRIEF)
+  customerApprovedAt DateTime?
+  customerSelectedAt DateTime?
+  customerShareToken String? @unique
+  customerShareExpiresAt DateTime?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
@@ -422,6 +437,8 @@ model Quotation {
   lead      Lead?          @relation(fields: [leadId], references: [id])
   createdBy User           @relation("QuotationCreatedBy", fields: [createdById], references: [id])
   items     QuotationItem[]
+  programOptions QuotationProgramOption[]
+  costSheets QuotationCostSheet[]
   tour      Tour?
   itineraryVersionId String?  @unique
   itineraryVersion ItineraryVersion? @relation(fields: [itineraryVersionId], references: [id])
@@ -462,6 +479,64 @@ model QuotationItem {
 
   @@index([quotationId])
   @@map("quotation_items")
+}
+
+model QuotationProgramOption {
+  id          String   @id @default(cuid())
+  quotationId String
+  optionNo    Int
+  title       String
+  summary     String?
+  itineraryVersionId String?
+  isSelected  Boolean  @default(false)
+  selectedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  itineraryVersion ItineraryVersion? @relation(fields: [itineraryVersionId], references: [id])
+
+  @@unique([quotationId, optionNo])
+  @@index([quotationId])
+  @@map("quotation_program_options")
+}
+
+model QuotationCostSheet {
+  id          String   @id @default(cuid())
+  quotationId String
+  version     Int      @default(1)
+  title       String
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  lines     QuotationCostLine[]
+
+  @@index([quotationId])
+  @@map("quotation_cost_sheets")
+}
+
+model QuotationCostLine {
+  id          String   @id @default(cuid())
+  costSheetId String
+  sortOrder   Int      @default(0)
+  category    String
+  name        String
+  description String?
+  quantity    Decimal  @default(1) @db.Decimal(15, 2)
+  unitPrice   Decimal  @default(0) @db.Decimal(15, 2)
+  serviceCount Decimal @default(1) @db.Decimal(15, 2)
+  total       Decimal  @default(0) @db.Decimal(15, 2)
+  currency    Currency @default(VND)
+  supplierName String?
+  isIncluded  Boolean  @default(true)
+  notes       String?
+
+  costSheet QuotationCostSheet @relation(fields: [costSheetId], references: [id], onDelete: Cascade)
+
+  @@index([costSheetId])
+  @@map("quotation_cost_lines")
 }
 
 model Itinerary {
@@ -508,6 +583,7 @@ model ItineraryVersion {
   days         ItineraryDay[]
   currentFor   Itinerary?         @relation("ItineraryCurrentVersion")
   quotation    Quotation?
+  quotationProgramOptions QuotationProgramOption[]
 
   @@unique([itineraryId, versionNumber])
   @@index([itineraryId])

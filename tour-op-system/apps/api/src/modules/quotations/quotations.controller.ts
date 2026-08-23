@@ -6,6 +6,11 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { QuotationsService } from './quotations.service';
+import { CreateProgramOptionDto } from './dto/create-program-option.dto';
+import { CreateCostSheetDto } from './dto/create-cost-sheet.dto';
+import { UpdateWorkflowStageDto } from './dto/update-workflow-stage.dto';
+import { SelectProgramOptionDto } from './dto/select-program-option.dto';
+import { Public } from '../../common/decorators/public.decorator';
 import { CreateQuotationDto } from './dto/create-quotation.dto';
 import { UpdateQuotationDto } from './dto/update-quotation.dto';
 import { QueryQuotationDto } from './dto/query-quotation.dto';
@@ -38,6 +43,23 @@ export class QuotationsController {
     @CurrentUser('id') userId: string,
   ) {
     return this.svc.create(dto, orgId, userId);
+  }
+
+  @Public()
+  @Get('share/:token')
+  @ApiOperation({ summary: 'Get a customer-facing quotation share' })
+  getCustomerShare(@Param('token') token: string) {
+    return this.svc.getCustomerShare(token);
+  }
+
+  @Public()
+  @Post('share/:token/select')
+  @ApiOperation({ summary: 'Select a quotation program option from a customer share' })
+  selectCustomerProgram(
+    @Param('token') token: string,
+    @Body() dto: SelectProgramOptionDto,
+  ) {
+    return this.svc.selectCustomerProgram(token, dto.optionNo);
   }
 
   @Get()
@@ -73,6 +95,49 @@ export class QuotationsController {
     @CurrentUser('organizationId') orgId: string,
   ) {
     return this.svc.update(id, dto, orgId);
+  }
+
+  @Post(':id/program-options')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES)
+  @ApiOperation({ summary: 'Add a customer-visible program option' })
+  createProgramOption(
+    @Param('id') id: string,
+    @Body() dto: CreateProgramOptionDto,
+    @CurrentUser('organizationId') orgId: string,
+  ) {
+    return this.svc.createProgramOption(id, dto, orgId);
+  }
+
+  @Post(':id/cost-sheet')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES)
+  @ApiOperation({ summary: 'Create a temporary supplier cost sheet' })
+  createCostSheet(
+    @Param('id') id: string,
+    @Body() dto: CreateCostSheetDto,
+    @CurrentUser('organizationId') orgId: string,
+  ) {
+    return this.svc.createCostSheet(id, dto, orgId);
+  }
+
+  @Patch(':id/workflow-stage')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES)
+  @ApiOperation({ summary: 'Move quotation through its customer-facing workflow' })
+  updateWorkflowStage(
+    @Param('id') id: string,
+    @Body() dto: UpdateWorkflowStageDto,
+    @CurrentUser('organizationId') orgId: string,
+  ) {
+    return this.svc.updateWorkflowStage(id, dto.stage, orgId, dto.note);
+  }
+
+  @Post(':id/share')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES)
+  @ApiOperation({ summary: 'Create or refresh a customer-facing quotation share token' })
+  createCustomerShare(
+    @Param('id') id: string,
+    @CurrentUser('organizationId') orgId: string,
+  ) {
+    return this.svc.createCustomerShare(id, orgId);
   }
 
   @Patch(':id/status')
