@@ -1,4 +1,4 @@
-const { PrismaClient, Currency, UserRole, CustomerType, SupplierCategory } = require('@prisma/client');
+const { PrismaClient, Currency, UserRole, UserStatus, CustomerType, SupplierCategory, TourStatus, BookingStatus } = require('@prisma/client');
 const { PrismaPg } = require('@prisma/adapter-pg');
 const pg = require('pg');
 const bcrypt = require('bcryptjs');
@@ -235,7 +235,160 @@ async function main() {
       { supplierId: attractionCuchi.id, category: SupplierCategory.ATTRACTION, name: 'Vé trẻ em',    basePrice: 5,         currency: Currency.USD, unit: 'per_person', isActive: true },
     ],
   });
-  console.log('✅ Resources (24)');
+  const seededSupplierIds = [hotelCaravelle.id, hotelHoian.id, transportMai.id, restaurantNgon.id, guideCompany.id, attractionCuchi.id];
+  const seededResources = await prisma.resource.findMany({
+    where: { supplierId: { in: seededSupplierIds } },
+    orderBy: { createdAt: 'asc' },
+    include: { _count: { select: { bookingItems: true, quotationItems: true } } },
+  });
+  const resourcesByKey = new Map();
+  const duplicateResourceIds = [];
+  for (const resource of seededResources) {
+    const key = `${resource.supplierId}:${resource.name}`;
+    const group = resourcesByKey.get(key) || [];
+    group.push(resource);
+    resourcesByKey.set(key, group);
+  }
+  for (const group of resourcesByKey.values()) {
+    if (group.length < 2) continue;
+    const keep = group.find((resource) => resource._count.bookingItems || resource._count.quotationItems) || group[0];
+    group.forEach((resource) => {
+      if (resource.id !== keep.id && !resource._count.bookingItems && !resource._count.quotationItems) duplicateResourceIds.push(resource.id);
+    });
+  }
+  if (duplicateResourceIds.length) {
+    await prisma.resource.deleteMany({ where: { id: { in: duplicateResourceIds } } });
+  }
+  console.log(`✅ Resources (${seededResources.length - duplicateResourceIds.length})`);
+
+  // 6. REVIEW OPERATIONS DATA
+  const tourStart = new Date();
+  tourStart.setDate(tourStart.getDate() + 5);
+  tourStart.setHours(0, 0, 0, 0);
+  const tourEnd = new Date(tourStart);
+  tourEnd.setDate(tourEnd.getDate() + 3);
+
+  const demoTour = await prisma.tour.upsert({
+    where: { code: 'TOUR-DEMO-001' },
+    update: {
+      organizationId: org.id,
+      customerId: customers[3].id,
+      title: 'Hồ Chí Minh – Hội An: Demo Operations Tour',
+      status: TourStatus.CONFIRMED,
+      pax: 12,
+      paxAdult: 10,
+      paxChild: 2,
+      travelDateFrom: tourStart,
+      travelDateTo: tourEnd,
+      destination: 'Ho Chi Minh City · Hoi An',
+      pickupLocation: 'Tân Sơn Nhất Airport',
+      pickupTime: '08:00',
+      currency: Currency.USD,
+    },
+    create: {
+      organizationId: org.id,
+      customerId: customers[3].id,
+      code: 'TOUR-DEMO-001',
+      title: 'Hồ Chí Minh – Hội An: Demo Operations Tour',
+      status: TourStatus.CONFIRMED,
+      pax: 12,
+      paxAdult: 10,
+      paxChild: 2,
+      travelDateFrom: tourStart,
+      travelDateTo: tourEnd,
+      destination: 'Ho Chi Minh City · Hoi An',
+      pickupLocation: 'Tân Sơn Nhất Airport',
+      pickupTime: '08:00',
+      sellingPrice: 6800,
+      totalCost: 4200,
+      profitAmount: 2600,
+      profitMargin: 38.24,
+      currency: Currency.USD,
+      confirmedAt: new Date(),
+    },
+  });
+
+  const demoBookingData = [
+    {
+      code: 'BOK-DEMO-HOTEL', supplierId: hotelCaravelle.id, category: SupplierCategory.HOTEL,
+      status: BookingStatus.DRAFT, title: 'Phòng Superior – Demo Operations Tour', quantity: 6,
+      unitCost: 150, totalCost: 900, currency: Currency.USD, resourceName: 'Phòng Superior',
+    },
+    {
+      code: 'BOK-DEMO-TRANSFER', supplierId: transportMai.id, category: SupplierCategory.TRANSPORT,
+      status: BookingStatus.CONFIRMED, title: 'Xe 16 chỗ – Đón sân bay', quantity: 1,
+      unitCost: 1800000, totalCost: 1800000, currency: Currency.VND, confirmationNo: 'ML-REV-001', resourceName: 'Xe 16 chỗ',
+    },
+    {
+      code: 'BOK-DEMO-GUIDE', supplierId: guideCompany.id, category: SupplierCategory.GUIDE,
+      status: BookingStatus.PENDING, title: 'HDV tiếng Anh – 4 ngày', quantity: 4,
+      unitCost: 80, totalCost: 320, currency: Currency.USD, resourceName: 'HDV tiếng Anh',
+    },
+  ];
+
+  let guideBookingId;
+  for (const data of demoBookingData) {
+    const booking = await prisma.booking.upsert({
+      where: { code: data.code },
+      update: {
+        tourId: demoTour.id,
+        supplierId: data.supplierId,
+        category: data.category,
+        status: data.status,
+        title: data.title,
+        serviceDate: tourStart,
+        checkIn: data.category === SupplierCategory.HOTEL ? tourStart : undefined,
+        checkOut: data.category === SupplierCategory.HOTEL ? tourEnd : undefined,
+        quantity: data.quantity,
+        unitCost: data.unitCost,
+        totalCost: data.totalCost,
+        amountDue: data.totalCost,
+        paymentStatus: 'UNPAID',
+        currency: data.currency,
+        confirmationNo: data.confirmationNo,
+        paymentDeadline: new Date(tourStart.getTime() - 86400000 * 2),
+      },
+      create: {
+        tourId: demoTour.id,
+        supplierId: data.supplierId,
+        code: data.code,
+        category: data.category,
+        status: data.status,
+        title: data.title,
+        serviceDate: tourStart,
+        checkIn: data.category === SupplierCategory.HOTEL ? tourStart : undefined,
+        checkOut: data.category === SupplierCategory.HOTEL ? tourEnd : undefined,
+        quantity: data.quantity,
+        unitCost: data.unitCost,
+        totalCost: data.totalCost,
+        amountDue: data.totalCost,
+        paymentStatus: 'UNPAID',
+        currency: data.currency,
+        confirmationNo: data.confirmationNo,
+        paymentDeadline: new Date(tourStart.getTime() - 86400000 * 2),
+      },
+    });
+
+    if (data.code === 'BOK-DEMO-GUIDE') guideBookingId = booking.id;
+
+    const resource = await prisma.resource.findFirst({ where: { supplierId: data.supplierId, name: data.resourceName } });
+    if (resource) {
+      await prisma.bookingItem.upsert({
+        where: { id: `seed-item-${data.code}` },
+        update: { bookingId: booking.id, resourceId: resource.id, name: resource.name, quantity: data.quantity, unit: resource.unit, unitCost: data.unitCost, totalCost: data.totalCost },
+        create: { id: `seed-item-${data.code}`, bookingId: booking.id, resourceId: resource.id, name: resource.name, quantity: data.quantity, unit: resource.unit, unitCost: data.unitCost, totalCost: data.totalCost },
+      });
+    }
+  }
+
+  if (guideBookingId) {
+    await prisma.priceInquiry.upsert({
+      where: { id: 'seed-inquiry-guide' },
+      update: { tourId: demoTour.id, bookingId: guideBookingId, supplierId: guideCompany.id, subject: 'Xác nhận HDV tiếng Anh – Demo Operations Tour', content: 'Vui lòng xác nhận HDV tiếng Anh cho 4 ngày và gửi thông tin liên hệ.', quotedPrice: 320, currency: Currency.USD, notes: 'Tạo sẵn để kiểm thử lịch sử hỏi giá.' },
+      create: { id: 'seed-inquiry-guide', tourId: demoTour.id, bookingId: guideBookingId, supplierId: guideCompany.id, subject: 'Xác nhận HDV tiếng Anh – Demo Operations Tour', content: 'Vui lòng xác nhận HDV tiếng Anh cho 4 ngày và gửi thông tin liên hệ.', quotedPrice: 320, currency: Currency.USD, notes: 'Tạo sẵn để kiểm thử lịch sử hỏi giá.' },
+    });
+  }
+  console.log('✅ Review operations data (1 tour, 3 bookings)');
 
   console.log('\n🎉 Seed hoàn tất!');
   console.log('─────────────────────────────────────────────');
