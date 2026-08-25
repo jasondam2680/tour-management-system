@@ -362,6 +362,21 @@ export class QuotationsService {
         },
         programOptions: { orderBy: { optionNo: 'asc' } },
         costSheets: { include: { lines: { orderBy: { sortOrder: 'asc' } } }, orderBy: { version: 'desc' } },
+        tour: {
+          include: {
+            itinerary: {
+              include: {
+                currentVersion: {
+                  include: { days: { include: { activities: true }, orderBy: { dayNumber: 'asc' } } },
+                },
+              },
+            },
+            bookings: {
+              include: { supplier: { select: { id: true, name: true, category: true } } },
+              orderBy: { serviceDate: 'asc' },
+            },
+          },
+        },
       },
     });
     if (!q) throw new NotFoundException(`Quotation ${id} not found`);
@@ -566,6 +581,43 @@ export class QuotationsService {
     });
   }
 
+  async selectSourceTour(id: string, tourId: string, organizationId: string) {
+    const [quotation, tour, currentSource] = await Promise.all([
+      this.prisma.quotation.findFirst({ where: { id, organizationId }, select: { id: true } }),
+      this.prisma.tour.findFirst({
+        where: { id: tourId, organizationId },
+        select: {
+          id: true,
+          quotationId: true,
+          code: true,
+          title: true,
+          itinerary: {
+            select: {
+              id: true,
+              title: true,
+              currentVersion: { select: { id: true, title: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.tour.findFirst({ where: { quotationId: id }, select: { id: true } }),
+    ]);
+    if (!quotation) throw new NotFoundException(`Quotation ${id} not found`);
+    if (!tour) throw new NotFoundException(`Tour ${tourId} not found`);
+    if (tour.quotationId && tour.quotationId !== id) {
+      throw new BadRequestException(`Tour ${tour.code} is already linked to another quotation`);
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      if (currentSource && currentSource.id !== tour.id) {
+        await tx.tour.update({ where: { id: currentSource.id }, data: { quotationId: null } });
+      }
+      await tx.tour.update({ where: { id: tour.id }, data: { quotationId: id } });
+    });
+
+    return this.findOne(id, organizationId);
+  }
+
   async createProgramOption(id: string, dto: CreateProgramOptionDto, organizationId: string) {
     await this.findOne(id, organizationId);
     const option = await this.prisma.quotationProgramOption.create({
@@ -673,6 +725,17 @@ export class QuotationsService {
             day: true, category: true, name: true, description: true, quantity: true,
             unit: true, sellingPrice: true, totalSelling: true, currency: true, date: true,
             startTime: true, endTime: true, isOptional: true, isIncluded: true,
+          },
+        },
+        tour: {
+          include: {
+            itinerary: {
+              include: {
+                currentVersion: {
+                  include: { days: { include: { activities: true }, orderBy: { dayNumber: 'asc' } } },
+                },
+              },
+            },
           },
         },
       },

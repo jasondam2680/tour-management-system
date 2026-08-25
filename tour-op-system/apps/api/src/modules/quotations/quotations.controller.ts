@@ -10,6 +10,7 @@ import { CreateProgramOptionDto } from './dto/create-program-option.dto';
 import { CreateCostSheetDto } from './dto/create-cost-sheet.dto';
 import { UpdateWorkflowStageDto } from './dto/update-workflow-stage.dto';
 import { SelectProgramOptionDto } from './dto/select-program-option.dto';
+import { SelectSourceTourDto } from './dto/select-source-tour.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { CreateQuotationDto } from './dto/create-quotation.dto';
 import { UpdateQuotationDto } from './dto/update-quotation.dto';
@@ -95,6 +96,17 @@ export class QuotationsController {
     @CurrentUser('organizationId') orgId: string,
   ) {
     return this.svc.update(id, dto, orgId);
+  }
+
+  @Patch(':id/source-tour')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES)
+  @ApiOperation({ summary: 'Select an existing Tour program as the quotation source' })
+  selectSourceTour(
+    @Param('id') id: string,
+    @Body() dto: SelectSourceTourDto,
+    @CurrentUser('organizationId') orgId: string,
+  ) {
+    return this.svc.selectSourceTour(id, dto.tourId, orgId);
   }
 
   @Post(':id/program-options')

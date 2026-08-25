@@ -30,12 +30,19 @@ export default function QuotationWorkflowPage() {
   const [costNotes, setCostNotes] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [availableTours, setAvailableTours] = useState<any[]>([]);
+  const [sourceTourId, setSourceTourId] = useState('');
 
   async function load() {
     setLoading(true);
     try {
-      const data = await api.get<any>(`/quotations/${id}`);
+      const [data, tourResult] = await Promise.all([
+        api.get<any>(`/quotations/${id}`),
+        api.get<any>('/tours', { page: 1, limit: 50 }),
+      ]);
       setQuotation(data);
+      setAvailableTours(tourResult?.data || []);
+      setSourceTourId(data.tour?.id || '');
       if (!optionTitle) setOptionTitle(data.title || 'Chương trình tour');
     } catch {
       setError('Không thể tải báo giá.');
@@ -46,18 +53,46 @@ export default function QuotationWorkflowPage() {
 
   useEffect(() => { void load(); }, [id]);
 
-  const costLines = useMemo(() => (quotation?.items || []).map((item: any, index: number) => ({
-    category: item.category || 'Dịch vụ',
-    name: item.name,
-    description: item.description,
-    quantity: Number(item.quantity || 1),
-    unitPrice: Number(item.buyingPrice || 0),
-    serviceCount: 1,
-    currency: item.currency || quotation?.currency || 'VND',
-    isIncluded: item.isIncluded !== false,
-    notes: item.notes,
-    sortOrder: index,
-  })), [quotation]);
+  const costLines = useMemo(() => {
+    const sourceBookings = quotation?.tour?.bookings || [];
+    if (sourceBookings.length) {
+      return sourceBookings.map((booking: any, index: number) => ({
+        category: booking.category || 'Dịch vụ',
+        name: booking.title,
+        description: booking.supplier?.name,
+        quantity: Number(booking.quantity || 1),
+        unitPrice: Number(booking.unitCost || 0),
+        serviceCount: 1,
+        currency: booking.currency || quotation?.currency || 'VND',
+        isIncluded: true,
+        notes: [booking.serviceDate, booking.checkInDate, booking.checkOutDate, booking.confirmationNo, booking.notes].filter(Boolean).join(' · '),
+        sortOrder: index,
+      }));
+    }
+    return (quotation?.items || []).map((item: any, index: number) => ({
+      category: item.category || 'Dịch vụ',
+      name: item.name,
+      description: item.description,
+      quantity: Number(item.quantity || 1),
+      unitPrice: Number(item.buyingPrice || 0),
+      serviceCount: 1,
+      currency: item.currency || quotation?.currency || 'VND',
+      isIncluded: item.isIncluded !== false,
+      notes: item.notes,
+      sortOrder: index,
+    }));
+  }, [quotation]);
+
+  async function selectSourceTour() {
+    if (!sourceTourId) return;
+    setSaving(true); setMessage(''); setError('');
+    try {
+      await api.patch(`/quotations/${id}/source-tour`, { tourId: sourceTourId });
+      setMessage('Đã chọn chương trình Tour làm nguồn cho lịch trình và PDF.');
+      await load();
+    } catch (e: any) { setError(e?.response?.data?.message || 'Không thể chọn chương trình Tour.'); }
+    finally { setSaving(false); }
+  }
 
   async function createOption(event: React.FormEvent) {
     event.preventDefault();
@@ -137,6 +172,25 @@ export default function QuotationWorkflowPage() {
           </div>
         </section>
 
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="font-semibold text-slate-900">Chương trình Tour nguồn cho PDF</h2>
+              <p className="mt-1 text-xs text-slate-500">Chọn chương trình đã lập trong module Tour. PDF sẽ lấy lịch trình từ itinerary hiện tại của Tour này.</p>
+            </div>
+            {quotation.tour && <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Đã liên kết: {quotation.tour.code}</span>}
+          </div>
+          <div className="mt-4 flex flex-col gap-3 md:flex-row">
+            <select value={sourceTourId} onChange={(event) => setSourceTourId(event.target.value)} className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm" disabled={saving}>
+              <option value="">Chọn chương trình Tour</option>
+              {availableTours.map((tour) => <option key={tour.id} value={tour.id}>{tour.code} — {tour.title}{tour.destination ? ` — ${tour.destination}` : ''}</option>)}
+            </select>
+            <button onClick={() => void selectSourceTour()} disabled={saving || !sourceTourId} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60">Dùng Tour này cho PDF</button>
+          </div>
+          {quotation.tour?.itinerary?.currentVersion && <p className="mt-3 text-xs text-emerald-700">Lịch trình hiện tại: {quotation.tour.itinerary.currentVersion.title}</p>}
+          {!availableTours.length && <p className="mt-3 text-xs text-amber-700">Chưa có chương trình Tour để chọn.</p>}
+        </section>
+
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="font-semibold text-slate-900">Chương trình tổng quát cho khách chọn</h2>
@@ -164,7 +218,7 @@ export default function QuotationWorkflowPage() {
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-900">Bảng chi phí tạm tính</h2><p className="mt-1 text-xs text-slate-500">Tạo snapshot chi phí dịch vụ từ các dòng cost hiện có của báo giá.</p></div><span className="text-sm font-semibold text-slate-700">{money(costLines.reduce((sum: number, line: any) => sum + line.quantity * line.unitPrice * line.serviceCount, 0), quotation.currency)}</span></div>
+          <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-900">Bảng chi phí tạm tính</h2><p className="mt-1 text-xs text-slate-500">{quotation.tour?.bookings?.length ? 'Lấy chi phí dịch vụ và nhà cung cấp từ các booking của Tour nguồn.' : 'Lấy chi phí dịch vụ từ các dòng báo giá hiện có.'}</p></div><span className="text-sm font-semibold text-slate-700">{money(costLines.reduce((sum: number, line: any) => sum + line.quantity * line.unitPrice * line.serviceCount, 0), quotation.currency)}</span></div>
           <form onSubmit={createCostSheet} className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_auto]">
             <input value={costTitle} onChange={(event) => setCostTitle(event.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
             <input value={costNotes} onChange={(event) => setCostNotes(event.target.value)} placeholder="Ghi chú nội bộ" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
