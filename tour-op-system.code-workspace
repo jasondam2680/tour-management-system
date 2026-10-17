@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"prisma.pinToPrisma6": false,
+		"commentTranslate.source": "zhaolei.zhipu-glm-translate-glm"
+	}
+}

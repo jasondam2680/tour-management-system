@@ -1,0 +1,1258 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  SALES
+  OP
+  FINANCE
+  GUIDE
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum CustomerType {
+  B2B
+  B2C
+}
+
+enum SupplierCategory {
+  HOTEL
+  RESORT
+  RESTAURANT
+  TRANSPORT
+  BOAT
+  GUIDE
+  ATTRACTION
+  VISA
+  INSURANCE
+  OTHER
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL_SENT
+  NEGOTIATING
+  WON
+  LOST
+  ABANDONED
+}
+
+enum LeadPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  VIEWED
+  NEGOTIATING
+  APPROVED
+  REJECTED
+  EXPIRED
+  CONVERTED
+}
+
+enum TourStatus {
+  PLANNING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum BookingStatus {
+  DRAFT
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum InvoiceType {
+  RECEIVABLE
+  PAYABLE
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+  OVERDUE
+  REFUNDED
+}
+
+enum Currency {
+  VND
+  USD
+  EUR
+  CNY
+  THB
+  SGD
+  JPY
+  KRW
+  AUD
+}
+
+enum TourQuotationType {
+  GROUP
+  PRIVATE
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum QuotationWorkflowStage {
+  CUSTOMER_BRIEF
+  PROGRAM_OPTIONS
+  PROGRAM_SELECTED
+  COST_SHEET
+  QUOTATION_READY
+  SENT_TO_CUSTOMER
+  CUSTOMER_APPROVED
+}
+
+enum DocumentType {
+  CONTRACT
+  INVOICE
+  RECEIPT
+  ITINERARY
+  PERMIT
+  INSURANCE
+  PASSPORT
+  VISA
+  OTHER
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  CASH
+  CREDIT_CARD
+  PAYPAL
+  CRYPTO
+  OTHER
+}
+
+enum GuideStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum GuideAdvanceStatus {
+  PENDING
+  APPROVED
+  PAID
+  SETTLED
+  CANCELLED
+}
+
+enum GuideSettlementStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+enum TourAuditStatus {
+  OPEN
+  SUBMITTED
+  REVIEWED
+  APPROVED
+  CLOSED
+}
+
+enum AuditLineStatus {
+  PENDING
+  APPROVED
+  ADJUSTED
+  REJECTED
+}
+
+enum AuditSourceType {
+  ARRANGEMENT
+  GUIDE_SETTLEMENT
+  MANUAL
+}
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  address     String?
+  phone       String?
+  email       String?
+  website     String?
+  logoUrl     String?
+  taxCode     String?
+  country     String   @default("VN")
+  timezone    String   @default("Asia/Ho_Chi_Minh")
+  currency    Currency @default(VND)
+  settings    Json     @default("{}")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users         User[]
+  customers     Customer[]
+  suppliers     Supplier[]
+  tours         Tour[]
+  itineraries   Itinerary[]
+  exchangeRates ExchangeRate[]
+  guides        Guide[]
+  guideAdvances GuideAdvance[]
+  guideSettlements GuideSettlement[]
+  serviceArrangements TourServiceArrangement[]
+  tourGuests          TourGuest[]
+  tourAudits          TourAudit[]
+
+  @@index([code])
+}
+
+model User {
+  id             String     @id @default(cuid())
+  organizationId String
+  email          String     @unique
+  passwordHash   String
+  firstName      String
+  lastName       String
+  phone          String?
+  avatarUrl      String?
+  role           UserRole   @default(SALES)
+  status         UserStatus @default(ACTIVE)
+  permissions    String[]   @default([])
+  lastLoginAt    DateTime?
+  lastLoginIp    String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  organization    Organization     @relation(fields: [organizationId], references: [id])
+  createdLeads    Lead[]           @relation("LeadCreatedBy")
+  assignedLeads   Lead[]           @relation("LeadAssignedTo")
+  createdQuotes   Quotation[]      @relation("QuotationCreatedBy")
+  assignedTours   TourAssignment[]
+  auditLogs       AuditLog[]
+  notifications   Notification[]
+
+  @@index([organizationId])
+  @@index([role])
+  @@map("users")
+}
+
+model Customer {
+  id             String       @id @default(cuid())
+  organizationId String
+  type           CustomerType @default(B2C)
+  code           String       @unique
+  firstName      String?
+  lastName       String?
+  nationality    String?
+  passportNo     String?
+  dateOfBirth    DateTime?
+  companyName    String?
+  taxCode        String?
+  contactPerson  String?
+  industry       String?
+  email          String?
+  phone          String?
+  address        String?
+  city           String?
+  country        String?
+  notes          String?
+  tags           String[]     @default([])
+  source         String?
+  totalTours     Int          @default(0)
+  totalRevenue   Decimal      @default(0) @db.Decimal(15, 2)
+  currency       Currency     @default(USD)
+  isVip          Boolean      @default(false)
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization Organization      @relation(fields: [organizationId], references: [id])
+  leads        Lead[]
+  quotations   Quotation[]
+  tours        Tour[]
+  invoices     Invoice[]
+  contacts     CustomerContact[]
+
+  @@index([organizationId])
+  @@index([type])
+  @@index([code])
+  @@map("customers")
+}
+
+model CustomerContact {
+  id         String   @id @default(cuid())
+  customerId String
+  name       String
+  role       String?
+  email      String?
+  phone      String?
+  isPrimary  Boolean  @default(false)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@map("customer_contacts")
+}
+
+model Supplier {
+  id             String           @id @default(cuid())
+  organizationId String
+  category       SupplierCategory
+  code           String           @unique
+  name           String
+  contactPerson  String?
+  email          String?
+  phone          String?
+  address        String?
+  city           String?
+  country        String?
+  website        String?
+  taxCode        String?
+  currency       Currency         @default(VND)
+  paymentTerms   String?
+  bankAccount    String?
+  bankName       String?
+  rating         Int              @default(3)
+  notes          String?
+  tags           String[]         @default([])
+  isPreferred    Boolean          @default(false)
+  isActive       Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organization     Organization     @relation(fields: [organizationId], references: [id])
+  resources        Resource[]
+  bookings         Booking[]
+  supplierPayments SupplierPayment[]
+  priceInquiries   PriceInquiry[]
+  serviceArrangements TourServiceArrangement[]
+
+  @@index([organizationId])
+  @@index([category])
+  @@map("suppliers")
+}
+
+model Resource {
+  id          String           @id @default(cuid())
+  supplierId  String
+  category    SupplierCategory
+  name        String
+  code        String?
+  description String?
+  basePrice   Decimal          @default(0) @db.Decimal(15, 2)
+  currency    Currency         @default(VND)
+  unit        String           @default("per_person")
+  capacity    Int?
+  location    String?
+  metadata    Json             @default("{}")
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  supplier       Supplier        @relation(fields: [supplierId], references: [id])
+  quotationItems QuotationItem[]
+  bookingItems   BookingItem[]
+  serviceArrangements TourServiceArrangement[]
+
+  @@index([supplierId])
+  @@map("resources")
+}
+
+model Lead {
+  id             String       @id @default(cuid())
+  organizationId String
+  customerId     String?
+  createdById    String
+  assignedToId   String?
+  title          String
+  source         String?
+  status         LeadStatus   @default(NEW)
+  priority       LeadPriority @default(MEDIUM)
+  pax            Int?
+  paxAdult       Int?
+  paxChild       Int?
+  travelDateFrom DateTime?
+  travelDateTo   DateTime?
+  destination    String?
+  tourType       String?
+  budget         Decimal?     @db.Decimal(15, 2)
+  currency       Currency     @default(USD)
+  notes          String?
+  tags           String[]     @default([])
+  wonAt          DateTime?
+  lostAt         DateTime?
+  lostReason     String?
+  estimatedValue Decimal?     @db.Decimal(15, 2)
+  followUpAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  customer   Customer?      @relation(fields: [customerId], references: [id])
+  createdBy  User           @relation("LeadCreatedBy", fields: [createdById], references: [id])
+  assignedTo User?          @relation("LeadAssignedTo", fields: [assignedToId], references: [id])
+  activities LeadActivity[]
+  quotations Quotation[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([assignedToId])
+  @@map("leads")
+}
+
+model LeadActivity {
+  id        String   @id @default(cuid())
+  leadId    String
+  type      String
+  subject   String?
+  content   String
+  outcome   String?
+  doneAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@map("lead_activities")
+}
+
+model Quotation {
+  id             String          @id @default(cuid())
+  organizationId String
+  customerId     String
+  leadId         String?
+  createdById    String
+  code           String          @unique
+  title          String
+  tourQuotationType TourQuotationType?
+  groupTourTemplateId String?
+  status         QuotationStatus @default(DRAFT)
+  version        Int             @default(1)
+  pax            Int             @default(1)
+  paxAdult       Int             @default(1)
+  paxChild       Int             @default(0)
+  travelDateFrom DateTime?
+  travelDateTo   DateTime?
+  duration       Int?
+  destination    String?
+  tourType       String?
+  subtotal       Decimal         @default(0) @db.Decimal(15, 2)
+  discountAmount Decimal         @default(0) @db.Decimal(15, 2)
+  discountPct    Decimal         @default(0) @db.Decimal(5, 2)
+  taxAmount      Decimal         @default(0) @db.Decimal(15, 2)
+  taxPct         Decimal         @default(0) @db.Decimal(5, 2)
+  totalAmount    Decimal         @default(0) @db.Decimal(15, 2)
+  totalCost      Decimal         @default(0) @db.Decimal(15, 2)
+  profitAmount   Decimal         @default(0) @db.Decimal(15, 2)
+  profitMargin   Decimal         @default(0) @db.Decimal(5, 2)
+  currency       Currency        @default(USD)
+  validUntil     DateTime?
+  notes          String?
+  internalNotes  String?
+  sentAt         DateTime?
+  viewedAt       DateTime?
+  approvedAt     DateTime?
+  rejectedAt     DateTime?
+  rejectedReason String?
+  workflowStage  QuotationWorkflowStage @default(CUSTOMER_BRIEF)
+  customerApprovedAt DateTime?
+  customerSelectedAt DateTime?
+  customerShareToken String? @unique
+  customerShareExpiresAt DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  customer  Customer       @relation(fields: [customerId], references: [id])
+  lead      Lead?          @relation(fields: [leadId], references: [id])
+  createdBy User           @relation("QuotationCreatedBy", fields: [createdById], references: [id])
+  items     QuotationItem[]
+  programOptions QuotationProgramOption[]
+  costSheets QuotationCostSheet[]
+  tour      Tour?
+  itineraryVersionId String?  @unique
+  itineraryVersion ItineraryVersion? @relation(fields: [itineraryVersionId], references: [id])
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([customerId])
+  @@index([tourQuotationType])
+  @@map("quotations")
+}
+
+model QuotationItem {
+  id           String    @id @default(cuid())
+  quotationId  String
+  resourceId   String?
+  day          Int?
+  sortOrder    Int       @default(0)
+  category     String
+  name         String
+  description  String?
+  quantity     Int       @default(1)
+  unit         String    @default("per_person")
+  sellingPrice Decimal   @default(0) @db.Decimal(15, 2)
+  buyingPrice  Decimal   @default(0) @db.Decimal(15, 2)
+  markup       Decimal   @default(0) @db.Decimal(5, 2)
+  totalSelling Decimal   @default(0) @db.Decimal(15, 2)
+  totalCost    Decimal   @default(0) @db.Decimal(15, 2)
+  currency     Currency  @default(USD)
+  date         DateTime?
+  startTime    String?
+  endTime      String?
+  notes        String?
+  isOptional   Boolean   @default(false)
+  isIncluded   Boolean   @default(true)
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  resource  Resource? @relation(fields: [resourceId], references: [id])
+
+  @@index([quotationId])
+  @@map("quotation_items")
+}
+
+model QuotationProgramOption {
+  id          String   @id @default(cuid())
+  quotationId String
+  optionNo    Int
+  title       String
+  summary     String?
+  itineraryVersionId String?
+  isSelected  Boolean  @default(false)
+  selectedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  itineraryVersion ItineraryVersion? @relation(fields: [itineraryVersionId], references: [id])
+
+  @@unique([quotationId, optionNo])
+  @@index([quotationId])
+  @@map("quotation_program_options")
+}
+
+model QuotationCostSheet {
+  id          String   @id @default(cuid())
+  quotationId String
+  version     Int      @default(1)
+  title       String
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  lines     QuotationCostLine[]
+
+  @@index([quotationId])
+  @@map("quotation_cost_sheets")
+}
+
+model QuotationCostLine {
+  id          String   @id @default(cuid())
+  costSheetId String
+  sortOrder   Int      @default(0)
+  category    String
+  name        String
+  description String?
+  quantity    Decimal  @default(1) @db.Decimal(15, 2)
+  unitPrice   Decimal  @default(0) @db.Decimal(15, 2)
+  serviceCount Decimal @default(1) @db.Decimal(15, 2)
+  total       Decimal  @default(0) @db.Decimal(15, 2)
+  currency    Currency @default(VND)
+  supplierName String?
+  isIncluded  Boolean  @default(true)
+  notes       String?
+
+  costSheet QuotationCostSheet @relation(fields: [costSheetId], references: [id], onDelete: Cascade)
+
+  @@index([costSheetId])
+  @@map("quotation_cost_lines")
+}
+
+model Itinerary {
+  id               String   @id @default(cuid())
+  organizationId   String
+  code             String   @unique
+  title            String
+  currentVersionId String?  @unique
+  isTemplate       Boolean  @default(false)
+  templateName     String?
+  packageIncludes  Json?
+  packagePrice     Decimal? @db.Decimal(15, 2)
+  packagePriceCurrency Currency @default(USD)
+  duration         Int?
+  minPax           Int?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  organization     Organization       @relation(fields: [organizationId], references: [id])
+  currentVersion   ItineraryVersion?  @relation("ItineraryCurrentVersion", fields: [currentVersionId], references: [id])
+  versions         ItineraryVersion[] @relation("ItineraryVersions")
+  tours            Tour[]
+
+  @@index([organizationId])
+  @@index([code])
+  @@index([isTemplate])
+  @@map("itineraries")
+}
+
+model ItineraryVersion {
+  id           String   @id @default(cuid())
+  itineraryId  String
+  versionNumber Int     @default(1)
+  title        String
+  overview     String?
+  notes        String?
+  isActive     Boolean  @default(false)
+  quotationId  String?  @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  itinerary    Itinerary          @relation("ItineraryVersions", fields: [itineraryId], references: [id], onDelete: Cascade)
+  days         ItineraryDay[]
+  currentFor   Itinerary?         @relation("ItineraryCurrentVersion")
+  quotation    Quotation?
+  quotationProgramOptions QuotationProgramOption[]
+
+  @@unique([itineraryId, versionNumber])
+  @@index([itineraryId])
+  @@map("itinerary_versions")
+}
+
+model ItineraryDay {
+  id            String              @id @default(cuid())
+  versionId     String
+  dayNumber     Int
+  title         String?
+  description   String?
+  meals         String[]            @default([])
+  accommodation String?
+  version       ItineraryVersion    @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  activities    ItineraryActivity[]
+
+  @@index([versionId])
+  @@map("itinerary_days")
+}
+
+model ItineraryActivity {
+  id          String       @id @default(cuid())
+  dayId       String
+  sortOrder   Int          @default(0)
+  time        String?
+  title       String
+  description String?
+  location    String?
+  duration    Int?
+  notes       String?
+  day         ItineraryDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+
+  @@index([dayId])
+  @@map("itinerary_activities")
+}
+
+model Tour {
+  id             String     @id @default(cuid())
+  organizationId String
+  customerId     String?
+  quotationId    String?    @unique
+  itineraryId    String?
+  code           String     @unique
+  title          String
+  status         TourStatus @default(PLANNING)
+  pax            Int        @default(1)
+  paxAdult       Int        @default(1)
+  paxChild       Int        @default(0)
+  travelDateFrom DateTime
+  travelDateTo   DateTime
+  destination    String?
+  sellingPrice   Decimal    @default(0) @db.Decimal(15, 2)
+  totalCost      Decimal    @default(0) @db.Decimal(15, 2)
+  profitAmount   Decimal    @default(0) @db.Decimal(15, 2)
+  profitMargin   Decimal    @default(0) @db.Decimal(5, 2)
+  currency       Currency   @default(USD)
+  pickupLocation String?
+  pickupTime     String?
+  flightInfo     Json?
+  specialRequests String?
+  notes          String?
+  internalNotes  String?
+  confirmedAt    DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  cancelledAt    DateTime?
+  cancelReason   String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  organization Organization      @relation(fields: [organizationId], references: [id])
+  customer     Customer?         @relation(fields: [customerId], references: [id])
+  quotation    Quotation?        @relation(fields: [quotationId], references: [id])
+  itinerary    Itinerary?        @relation(fields: [itineraryId], references: [id])
+  bookings     Booking[]
+  assignments  TourAssignment[]
+  guideAssignments GuideAssignment[]
+  guideAdvances    GuideAdvance[]
+  guideSettlements GuideSettlement[]
+  serviceArrangements TourServiceArrangement[]
+  guests              TourGuest[]
+  incidents    TourIncident[]
+  invoices     Invoice[]
+  documents    TourDocument[]
+  supplierPayments SupplierPayment[]
+  tourAudit    TourAudit?
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([customerId])
+  @@index([travelDateFrom, travelDateTo])
+  @@index([status, travelDateFrom])
+  @@index([createdAt])
+  @@map("tours")
+}
+
+model TourAssignment {
+  id       String   @id @default(cuid())
+  tourId   String
+  userId   String
+  role     String   @default("GUIDE")
+  notes    String?
+  fee      Decimal? @db.Decimal(15, 2)
+  currency Currency @default(VND)
+  paidAt   DateTime?
+  tour     Tour     @relation(fields: [tourId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@unique([tourId, userId, role])
+  @@map("tour_assignments")
+}
+
+model TourIncident {
+  id          String           @id @default(cuid())
+  tourId      String
+  type        String
+  severity    IncidentSeverity @default(LOW)
+  title       String
+  description String
+  location    String?
+  occurredAt  DateTime         @default(now())
+  resolvedAt  DateTime?
+  resolution  String?
+  reportedBy  String?
+  createdAt   DateTime         @default(now())
+  tour        Tour             @relation(fields: [tourId], references: [id])
+
+  @@index([tourId])
+  @@map("tour_incidents")
+}
+
+model TourDocument {
+  id         String   @id @default(cuid())
+  tourId     String
+  type       String
+  name       String
+  fileUrl    String
+  fileSize   Int?
+  mimeType   String?
+  uploadedAt DateTime @default(now())
+  tour       Tour     @relation(fields: [tourId], references: [id])
+
+  @@index([tourId])
+  @@map("tour_documents")
+}
+
+model Booking {
+  id              String        @id @default(cuid())
+  tourId          String
+  supplierId      String?
+  code            String        @unique
+  category        SupplierCategory
+  status          BookingStatus @default(DRAFT)
+  title           String
+  serviceDate     DateTime?
+  checkIn         DateTime?
+  checkOut        DateTime?
+  quantity        Int           @default(1)
+  unitCost        Decimal       @default(0) @db.Decimal(15, 2)
+  totalCost       Decimal       @default(0) @db.Decimal(15, 2)
+  currency        Currency      @default(VND)
+  exchangeRate    Decimal       @default(1) @db.Decimal(10, 4)
+  totalCostBase   Decimal       @default(0) @db.Decimal(15, 2)
+  amountPaid      Decimal       @default(0) @db.Decimal(15, 2)
+  amountDue       Decimal       @default(0) @db.Decimal(15, 2)
+  paymentStatus   PaymentStatus @default(UNPAID)
+  paymentDeadline DateTime?
+  confirmationNo  String?
+  notes           String?
+  internalNotes   String?
+  sentAt          DateTime?
+  confirmedAt     DateTime?
+  cancelledAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  tour     Tour              @relation(fields: [tourId], references: [id])
+  supplier Supplier?         @relation(fields: [supplierId], references: [id])
+  items    BookingItem[]
+  payments SupplierPayment[]
+  inquiries PriceInquiry[]
+
+  @@index([tourId])
+  @@index([supplierId])
+  @@index([tourId, serviceDate])
+  @@index([supplierId, serviceDate])
+  @@index([paymentStatus, paymentDeadline])
+  @@index([createdAt])
+  @@map("bookings")
+}
+
+model BookingItem {
+  id          String    @id @default(cuid())
+  bookingId   String
+  resourceId  String?
+  name        String
+  description String?
+  date        DateTime?
+  quantity    Int       @default(1)
+  unit        String    @default("per_person")
+  unitCost    Decimal   @default(0) @db.Decimal(15, 2)
+  totalCost   Decimal   @default(0) @db.Decimal(15, 2)
+  notes       String?
+  booking     Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  resource    Resource? @relation(fields: [resourceId], references: [id])
+
+  @@index([bookingId])
+  @@map("booking_items")
+}
+
+model PriceInquiry {
+  id           String   @id @default(cuid())
+  tourId       String?
+  supplierId   String
+  bookingId    String?
+  subject      String
+  content      String
+  sentAt       DateTime @default(now())
+  replyAt      DateTime?
+  quotedPrice  Decimal? @db.Decimal(15, 2)
+  currency     Currency @default(VND)
+  notes        String?
+  isSelected   Boolean  @default(false)
+  supplier     Supplier @relation(fields: [supplierId], references: [id])
+  booking      Booking? @relation(fields: [bookingId], references: [id])
+
+  @@index([supplierId])
+  @@map("price_inquiries")
+}
+
+model Invoice {
+  id          String        @id @default(cuid())
+  tourId      String?
+  customerId  String
+  code        String        @unique
+  type        InvoiceType   @default(RECEIVABLE)
+  status      PaymentStatus @default(UNPAID)
+  subtotal    Decimal       @default(0) @db.Decimal(15, 2)
+  taxAmount   Decimal       @default(0) @db.Decimal(15, 2)
+  taxPct      Decimal       @default(0) @db.Decimal(5, 2)
+  totalAmount Decimal       @default(0) @db.Decimal(15, 2)
+  amountPaid  Decimal       @default(0) @db.Decimal(15, 2)
+  amountDue   Decimal       @default(0) @db.Decimal(15, 2)
+  currency    Currency      @default(USD)
+  dueDate     DateTime?
+  notes       String?
+  issuedAt    DateTime      @default(now())
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  tour     Tour?     @relation(fields: [tourId], references: [id])
+  customer Customer  @relation(fields: [customerId], references: [id])
+  receipts Receipt[]
+
+  @@index([customerId])
+  @@index([tourId])
+  @@index([customerId, dueDate])
+  @@index([tourId, issuedAt])
+  @@index([status, dueDate])
+  @@index([createdAt])
+  @@map("invoices")
+}
+
+model Receipt {
+  id           String   @id @default(cuid())
+  invoiceId    String
+  amount       Decimal  @db.Decimal(15, 2)
+  currency     Currency @default(USD)
+  exchangeRate Decimal  @default(1) @db.Decimal(10, 4)
+  amountBase   Decimal  @default(0) @db.Decimal(15, 2)
+  method       String
+  reference    String?
+  notes        String?
+  receivedAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+  invoice      Invoice  @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId])
+  @@map("receipts")
+}
+
+model SupplierPayment {
+  id           String   @id @default(cuid())
+  bookingId    String?
+  tourId       String?
+  supplierId   String?
+  amount       Decimal  @db.Decimal(15, 2)
+  currency     Currency @default(VND)
+  exchangeRate Decimal  @default(1) @db.Decimal(10, 4)
+  amountBase   Decimal  @default(0) @db.Decimal(15, 2)
+  method       String   @default("bank_transfer")
+  reference    String?
+  notes        String?
+  dueDate      DateTime?
+  paidAt       DateTime?
+  createdAt    DateTime @default(now())
+  booking      Booking?  @relation(fields: [bookingId], references: [id])
+  tour         Tour?     @relation(fields: [tourId], references: [id])
+  supplier     Supplier? @relation(fields: [supplierId], references: [id])
+
+  @@index([bookingId])
+  @@index([tourId])
+  @@map("supplier_payments")
+}
+
+model ExchangeRate {
+  id             String   @id @default(cuid())
+  organizationId String
+  fromCurrency   Currency
+  toCurrency     Currency
+  rate           Decimal  @db.Decimal(10, 4)
+  source         String?
+  effectiveDate  DateTime @default(now())
+  createdAt      DateTime @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@map("exchange_rates")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  orgId     String?
+  action    String
+  entity    String
+  entityId  String?
+  oldData   Json?
+  newData   Json?
+  changes   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  data      Json?
+  isRead    Boolean  @default(false)
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model Guide {
+  id               String      @id @default(cuid())
+  organizationId   String
+  code             String
+  fullName         String
+  phone            String?
+  idCard           String?
+  licenseNo        String?
+  languages        String[]    @default([])
+  bankName         String?
+  bankAccount      String?
+  accountName      String?
+  defaultDailyRate Decimal?    @db.Decimal(15, 2)
+  status           GuideStatus @default(ACTIVE)
+  notes            String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  organization Organization       @relation(fields: [organizationId], references: [id])
+  assignments  GuideAssignment[]
+  advances     GuideAdvance[]
+  settlements  GuideSettlement[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId, status])
+  @@map("guides")
+}
+
+model GuideAssignment {
+  id        String   @id @default(cuid())
+  guideId   String
+  tourId    String
+  role      String   @default("GUIDE")
+  startAt   DateTime?
+  endAt     DateTime?
+  days      Decimal? @db.Decimal(5, 1)
+  dailyRate Decimal? @db.Decimal(15, 2)
+  fee       Decimal? @db.Decimal(15, 2)
+  currency  Currency @default(VND)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  guide Guide @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  tour  Tour  @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@unique([guideId, tourId, role])
+  @@index([tourId])
+  @@map("guide_assignments")
+}
+
+model GuideAdvance {
+  id             String             @id @default(cuid())
+  organizationId String
+  guideId        String
+  tourId         String?
+  code           String
+  amount         Decimal            @db.Decimal(15, 2)
+  currency       Currency           @default(VND)
+  exchangeRate   Decimal            @default(1) @db.Decimal(10, 4)
+  amountBase     Decimal            @default(0) @db.Decimal(15, 2)
+  method         String             @default("bank_transfer")
+  advanceDate    DateTime           @default(now())
+  bankAccount    String?
+  notes          String?
+  status         GuideAdvanceStatus @default(PENDING)
+  settledAt      DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  guide        Guide        @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  tour         Tour?        @relation(fields: [tourId], references: [id])
+
+  @@unique([organizationId, code])
+  @@index([organizationId, guideId])
+  @@index([tourId])
+  @@map("guide_advances")
+}
+
+model GuideSettlement {
+  id               String                @id @default(cuid())
+  organizationId   String
+  code             String
+  guideId          String
+  tourId           String?
+  days             Decimal               @default(0) @db.Decimal(5, 1)
+  dailyRate        Decimal               @default(0) @db.Decimal(15, 2)
+  perDiem          Decimal               @default(0) @db.Decimal(15, 2)
+  tipAmount        Decimal               @default(0) @db.Decimal(15, 2)
+  otherIncome      Decimal               @default(0) @db.Decimal(15, 2)
+  totalExpenses    Decimal               @default(0) @db.Decimal(15, 2)
+  advanceDeduction Decimal               @default(0) @db.Decimal(15, 2)
+  pitRate          Decimal               @default(10) @db.Decimal(5, 2)
+  pitTax           Decimal               @default(0) @db.Decimal(15, 2)
+  netPayable       Decimal               @default(0) @db.Decimal(15, 2)
+  currency         Currency              @default(VND)
+  status           GuideSettlementStatus @default(DRAFT)
+  preparedBy       String?
+  approvedBy       String?
+  paidAt           DateTime?
+  notes            String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  organization Organization          @relation(fields: [organizationId], references: [id])
+  guide        Guide                 @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  tour         Tour?                 @relation(fields: [tourId], references: [id])
+  lines        GuideSettlementLine[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId, status])
+  @@index([guideId])
+  @@index([tourId])
+  @@map("guide_settlements")
+}
+
+model GuideSettlementLine {
+  id           String   @id @default(cuid())
+  settlementId String
+  description  String
+  amount       Decimal  @db.Decimal(15, 2)
+  notes        String?
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  settlement GuideSettlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+
+  @@index([settlementId])
+  @@map("guide_settlement_lines")
+}
+
+enum ServiceType {
+  ATTRACTION
+  HOTEL
+  MEAL
+  TRANSPORT
+  FLIGHT
+  INSURANCE
+  VISA
+  GUIDE_SERVICE
+  SHOPPING
+  OTHER
+}
+
+enum ArrangementPayBy {
+  GUIDE_SELF
+  COMPANY_TOPUP
+  COMPANY_DIRECT
+}
+
+enum ArrangementStatus {
+  PENDING
+  CONFIRMED
+  PAID
+  CANCELLED
+}
+
+model TourServiceArrangement {
+  id             String           @id @default(cuid())
+  organizationId String
+  tourId         String
+  serviceType    ServiceType      @default(OTHER)
+  supplierId     String?
+  resourceId     String?
+  serviceDate    DateTime?
+  description    String?
+  quantity       Decimal?         @db.Decimal(10, 2)
+  unitPrice      Decimal          @default(0) @db.Decimal(15, 2)
+  currency       Currency         @default(VND)
+  totalAmount    Decimal          @default(0) @db.Decimal(15, 2)
+  payBy          ArrangementPayBy @default(COMPANY_DIRECT)
+  status         ArrangementStatus @default(PENDING)
+  notes          String?
+  sortOrder      Int              @default(0)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  tour         Tour         @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  supplier     Supplier?    @relation(fields: [supplierId], references: [id])
+  resource     Resource?    @relation(fields: [resourceId], references: [id])
+
+  @@index([organizationId])
+  @@index([tourId])
+  @@index([tourId, serviceType])
+  @@map("tour_service_arrangements")
+}
+
+model TourGuest {
+  id             String   @id @default(cuid())
+  organizationId String
+  tourId         String
+  fullName       String
+  gender         String?
+  nationality    String?
+  passportNo     String?
+  birthDate      DateTime?
+  birthPlace     String?
+  issueDate      DateTime?
+  issuePlace     String?
+  expiryDate     DateTime?
+  issueAuthority String?
+  roomType       String?
+  phone          String?
+  notes          String?
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  tour         Tour         @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([tourId])
+  @@index([tourId, passportNo])
+  @@map("tour_guests")
+}
+
+model TourAudit {
+  id             String          @id @default(cuid())
+  organizationId String
+  tourId         String          @unique
+  status         TourAuditStatus @default(OPEN)
+  notes          String?
+  openedAt       DateTime        @default(now())
+  submittedAt    DateTime?
+  reviewedAt     DateTime?
+  approvedAt     DateTime?
+  closedAt       DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id])
+  tour         Tour            @relation(fields: [tourId], references: [id])
+  lines        TourAuditLine[]
+
+  @@index([organizationId])
+  @@map("tour_audits")
+}
+
+model TourAuditLine {
+  id            String           @id @default(cuid())
+  auditId       String
+  sourceType    AuditSourceType  @default(MANUAL)
+  sourceId      String?
+  description   String
+  claimedAmount Decimal          @default(0) @db.Decimal(15, 2)
+  auditedAmount Decimal?         @db.Decimal(15, 2)
+  currency      Currency         @default(VND)
+  status        AuditLineStatus  @default(PENDING)
+  billUrl       String?
+  notes         String?
+  sortOrder     Int              @default(0)
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  audit TourAudit @relation(fields: [auditId], references: [id], onDelete: Cascade)
+
+  @@index([auditId])
+  @@map("tour_audit_lines")
+}
